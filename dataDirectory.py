@@ -1,9 +1,10 @@
 # Created by Chen Yizhi, 20171201.
 import os
+from baseurl import baseurl
 
 
 class DataDirectory:
-    base_dir = '/mnt/disk6/Yizhi/'
+    base_dir = baseurl
     checkpoint_fold = 'Screen/Train'
     eval_fold = 'Screen/Eval'
     cross_validation_fold = 'cross_validation'
