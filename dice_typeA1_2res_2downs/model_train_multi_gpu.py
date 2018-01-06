@@ -5,7 +5,7 @@ from __future__ import print_function
 class PARAMETERS:
     MOVING_AVERAGE = 0.999
     INITIAL_LEARNING_RATE = 0.0001  #1e-4
-    TYPEA = 0.5
+    TYPEA = 1
     TYPEB = 0 
     TRUE_SAMPLE_RATIO = 0.5
     IF_CONTINUE = 1
@@ -27,6 +27,7 @@ from screen_cnn import inference
 from ctc_screen_train_multi_gpu import train as screen_train
 from model_train import getloss
 
+#os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
 
 def main(argv=None):  # pylint: disable=unused-argument
