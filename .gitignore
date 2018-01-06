@@ -1,0 +1,4 @@
+*.pyc
+independent_*/
+baseurl.py
+.idea/

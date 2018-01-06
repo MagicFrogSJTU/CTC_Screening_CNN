@@ -57,18 +57,18 @@ def inference(volumes, iftrain):
         conv = conv1 + conv
         conv_left2 = tf.nn.leaky_relu(conv)
 
-        conv = layer(conv_left2, 'down2', 64, [2,2,2], [2,2,2], ifRelu=True)
+        conv = layer(conv_left2, 'down2', 32, [2,2,2], [2,2,2], ifRelu=True)
 
     # 3
     with tf.name_scope('bottom'):
-        conv1 = layer(conv, 'conv3.0', 64, [5,5,5], ifRelu=True)
-        conv1 = layer(conv1, 'conv3.1', 64, [5,5,5], ifRelu=False)
+        conv1 = layer(conv, 'conv3.0', 32, [5,5,5], ifRelu=True)
+        conv1 = layer(conv1, 'conv3.1', 32, [5,5,5], ifRelu=False)
         conv = conv1 + conv
         conv = tf.nn.leaky_relu(conv)
 
         # 3_
-        conv1 = layer(conv, 'conv3.0_', 64, [5,5,5], ifRelu=True)
-        conv1 = layer(conv1, 'conv3.1_', 64, [5,5,5], ifRelu=False)
+        conv1 = layer(conv, 'conv3.0_', 32, [5,5,5], ifRelu=True)
+        conv1 = layer(conv1, 'conv3.1_', 32, [5,5,5], ifRelu=False)
         conv = conv1 + conv
         conv = tf.nn.leaky_relu(conv)
         conv = deconv_layer(conv, 'up2_', 32, [2,2,2], [2,2,2], ifRelu=True)
@@ -87,18 +87,18 @@ def inference(volumes, iftrain):
         conv = tf.nn.leaky_relu(conv)
 
 
-        conv = deconv_layer(conv, 'up1_', 32, [2,2,2], [2,2,2], ifRelu=True)
+        conv = deconv_layer(conv, 'up1_', 16, [2,2,2], [2,2,2], ifRelu=True)
 
     # 1_
     with tf.name_scope('up1'):
         conv1 = tf.concat([conv, conv_left1], 4, name='concat1_')
-        conv1 = layer(conv1, 'conv1.0_', 32, [5,5,5], ifRelu=True)
-        conv1 = layer(conv1, 'conv1.1_', 32, [5,5,5], ifRelu=False)
+        conv1 = layer(conv1, 'conv1.0_', 16, [5,5,5], ifRelu=True)
+        conv1 = layer(conv1, 'conv1.1_', 16, [5,5,5], ifRelu=False)
         conv = conv1 + conv
         conv = tf.nn.leaky_relu(conv)
 
-        conv1 = layer(conv, 'conv1.2_', 32, [5, 5, 5], ifRelu=True)
-        conv1 = layer(conv1, 'conv1.3_', 32, [5, 5, 5], ifRelu=False)
+        conv1 = layer(conv, 'conv1.2_', 16, [5, 5, 5], ifRelu=True)
+        conv1 = layer(conv1, 'conv1.3_', 16, [5, 5, 5], ifRelu=False)
         conv = conv1 + conv
         conv = tf.nn.leaky_relu(conv)
 

@@ -1,5 +1,7 @@
-from dataDirectory import DataDirectory
+import sys
 import os
+sys.path.append(os.path.join(os.getcwd(),".."))
+from dataDirectory import DataDirectory
 import data_input
 from screen import main
 from screen import Test
