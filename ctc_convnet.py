@@ -9,7 +9,7 @@ import ctc_input
 import tensorflow as tf
 import numpy as np
 import scipy.ndimage
-
+import ctc_input_cpu
 
 def dialate(labels):
     a = labels.astype(np.uint8)
@@ -64,8 +64,15 @@ def inputs(eval_data, record_file_dir, database_dir, Parameters):
     ValueError: If no data_dir
     """
     if eval_data:
-        images, labels = ctc_input.inputs(eval_data, Parameters.BATCH_SIZE, record_file_dir, database_dir,
+        if Parameters.ROTATE_GPU:
+            print("GPU ROTATION")
+            images, labels = ctc_input.inputs(eval_data, Parameters.BATCH_SIZE, record_file_dir, database_dir,
                                           Parameters)
+        else:
+            print("CPU ROTATION")
+            images, labels = ctc_input_cpu.inputs(eval_data, Parameters.BATCH_SIZE, record_file_dir, database_dir,
+                                          Parameters)
+            
     else:
         images, labels = ctc_input.inputs(eval_data, 1, record_file_dir, database_dir,Parameters)
 

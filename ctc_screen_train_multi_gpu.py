@@ -62,7 +62,7 @@ def train(train_dir, record_file_dir, database_dir, inference, getloss, Paramete
         opt = tf.train.AdamOptimizer(decay_learning_rate)
 
         with tf.variable_scope(tf.get_variable_scope()):
-            for i in range(1, Parameters.NUM_GPUS):
+            for i in range(0, Parameters.NUM_GPUS):
                 with tf.device('/gpu:%d' % i):
                     with tf.name_scope('%s_%d' % ('gpu', i)) as scope:
                         vol_batch, label_batch = batch_queue.dequeue()
