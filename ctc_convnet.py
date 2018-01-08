@@ -45,7 +45,8 @@ def train(total_loss, global_step, Parameters):
     variable_averages = tf.train.ExponentialMovingAverage(Parameters.MOVING_AVERAGE, global_step)
     variable_averages_op = variable_averages.apply(tf.trainable_variables())
 
-    with tf.control_dependencies([variable_averages_op, apply_gradient_op]):
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    with tf.control_dependencies([variable_averages_op, apply_gradient_op,]+ update_ops):
         train_op = tf.no_op(name='train')
     return train_op
 
