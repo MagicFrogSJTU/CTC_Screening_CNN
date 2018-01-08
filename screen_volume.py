@@ -19,7 +19,7 @@ import scipy.ndimage
 
 
 def main(checkpoint_dir, record_dir, which, inference, Parameters):
-    test_dir = record_dir+which
+    test_dir = record_dir+"/"+which
     with open(test_dir, 'r') as f:
         lines = f.readlines()
     rawCTlist = []
