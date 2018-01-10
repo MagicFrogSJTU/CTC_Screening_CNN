@@ -194,7 +194,7 @@ def inputs(train_or_eval, batch_size, record_file_dir, database_dir, Parameters)
 def samples_test(vol, mask):
     index_left = np.zeros((3),dtype=np.int)
     for i in range(3):
-        index_left[i] = int((CUT_RAW_VOLUME_SIZE-SCREEN_VOLUME_SIZE)/2)
+        index_left[i] = int((CUT_RAW_VOLUME_SIZE-SCREEN_VOLUME_SIZE)/2) + 8
     index_right = index_left + SCREEN_VOLUME_SIZE
     croped_vol = vol[index_left[0]:index_right[0],
                  index_left[1]:index_right[1],

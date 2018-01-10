@@ -15,23 +15,19 @@ CUT_RAW_VOLUME_SIZE = 160
 
 import os.path
 import numpy as np
-import random
 import tensorflow as tf
-import sys
-import argparse
 import os
-from scipy.ndimage import zoom
 import polyp_def
 import multiprocessing
 import SimpleITK
 from scipy.interpolate import RegularGridInterpolator as RGI
-import zlib
 import time
 from scipy.ndimage import binary_dilation
 from scipy.ndimage import generate_binary_structure
 from multiprocessing import Manager
 from screen import crop
 from dataDirectory import DataDirectory
+import dataDirectory
 
 
 
@@ -433,6 +429,43 @@ class Polyp_Manager:
 
 
 
+class Volume_Manager:
+
+    def get_volume_from_record(self, record_url):
+        with open(record_url, 'r') as f:
+            lines = f.readlines()
+        self.volume_list = []
+        for line in lines:
+            line = line[:-1]
+            for file in os.listdir(line):
+                if file == 'oriInterpolatedCTData.raw' or file == 'InterpolatedCTData.raw':
+                    new_volume = polyp_def.Volume_Data()
+                    new_volume.Set_Directory(line)
+                    self.volume_list.append(new_volume)
+                    break
+
+
+    def get_volume_from_main_directory(self, record_url):
+        self.volume_list = []
+        for dirpath, dirnames, filenames in os.walk(record_url):
+            for filename in filenames:
+                if filename == 'oriInterpolatedCTData.raw' or filename == 'InterpolatedCTData.raw':
+                    new_volume = polyp_def.Volume_Data()
+                    new_volume.Set_Directory(dirpath)
+                    self.volume_list.append(new_volume)
+                    break
+
+    def calculate_colon_mask_dilation(self):
+        for volume in self.volume_list:
+            a=time.time()
+            volume.Load_Volume_Data()
+            volume.load_colon_mask()
+            volume.colon_mask_dilation()
+            image = SimpleITK.GetImageFromArray(volume.dilated_colon_mask)
+            SimpleITK.WriteImage(image, os.path.join(volume.base_dir, "dilated_colon_mask.nii.gz"))
+            volume.clear_volume_data()
+            print("time consumed:", time.time()-a)
+
 
 if __name__ == '__main__':
 
@@ -446,7 +479,7 @@ if __name__ == '__main__':
 
 
     # Generate train set and test test.
-    if 1:
+    if 0:
         polyp_manager = Polyp_Manager()
         #polyp_manager.train_test_independent_seperation()
         #polyp_manager.train_test_cross_validation_seperation()
@@ -457,8 +490,12 @@ if __name__ == '__main__':
         polyp_manager.read_polyps_from_disk(whichone='test')
         for polyp in polyp_manager.polyp_list:
             print(polyp.INDEX, np.sum(polyp.mask[56:104,56:104,56:104]))
-
-
+    if 1:
+        volume_manager = Volume_Manager()
+        dataDir = dataDirectory.DataDirectory()
+        volume_record_dir = os.path.join(dataDir.get_current_record_dir(), "trainVolumeRecord.txt")
+        volume_manager.get_volume_from_record(volume_record_dir)
+        volume_manager.calculate_colon_mask_dilation()
 
 
 

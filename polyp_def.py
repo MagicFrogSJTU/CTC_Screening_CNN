@@ -198,9 +198,18 @@ class Volume_Data:
         self.rawdata = 0
         self.colon_mask = 0
         self.shape = 0
+        self.dilated_colon_mask = 0
+        self.polyp_mask = 0
+        self.score_map = 0
     '''Volume'''
     def Set_Directory(self, direc):
         self.base_dir = direc
+    def clear_volume_data(self):
+        self.rawdata = 0
+        self.colon_mask = 0
+        self.dilated_colon_mask = 0
+        self.polyp_mask = 0
+        self.score_map = 0
 
 
     def Load_Volume_Data(self):
@@ -240,7 +249,7 @@ class Volume_Data:
             self.colon_mask = np.reshape(data, self.shape)
 
     def colon_mask_dilation(self, iterations=8):
-        if self.colon_mask == []:
+        if self.colon_mask is 0:
             raise ValueError
         structure = generate_binary_structure(3,2)
         self.dilated_colon_mask = binary_dilation(self.colon_mask, structure, iterations).astype(np.uint8)
@@ -252,6 +261,12 @@ class Volume_Data:
         self.polyp_mask = SimpleITK.GetArrayFromImage(image)
         return 1
 
-    def load_score_map(self, name):
+    def load_score_map(self, name='score_map.nii.gz'):
         image = SimpleITK.ReadImage(os.path.join(self.base_dir, name))
-        return SimpleITK.GetArrayFromImage(image)
+        self.score_map = SimpleITK.GetArrayFromImage(image)
+        return self.score_map
+
+    def load_colon_dilation(self):
+        image = SimpleITK.ReadImage(os.path.join(self.base_dir, "dilated_colon_mask.nii.gz"))
+        self.dilated_colon_mask = SimpleITK.GetArrayFromImage(image)
+        return self.dilated_colon_mask

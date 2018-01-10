@@ -1,4 +1,4 @@
-
+# Created by Chen Yizhi
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -6,30 +6,17 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-import ctc_convnet
 import os
 import SimpleITK
 from data_input import SCREEN_VOLUME_SIZE
-import polyp_def
 import time
 from scipy.ndimage import label
 from scipy.ndimage import find_objects
 import scipy.ndimage
+from screen import crop
+SCREEN_CROP_LEN = SCREEN_VOLUME_SIZE + 20
 
-
-
-def main(checkpoint_dir, record_dir, which, inference, Parameters):
-    test_dir = record_dir+"/"+which
-    with open(test_dir, 'r') as f:
-        lines = f.readlines()
-    rawCTlist = []
-    for line in lines:
-        line = line[:-1]
-        for file in os.listdir(line):
-            if file == 'oriInterpolatedCTData.raw' or file == 'InterpolatedCTData.raw':
-                rawCTlist.append(os.path.join(line, file))
-                break
-
+def screen_cnn(checkpoint_dir, volume_manager, inference, Parameters):
     with tf.Graph().as_default():
         vol = tf.placeholder(tf.float32, shape=(1, SCREEN_VOLUME_SIZE, SCREEN_VOLUME_SIZE, SCREEN_VOLUME_SIZE, 1))
         logits = inference(vol, False)
@@ -48,19 +35,14 @@ def main(checkpoint_dir, record_dir, which, inference, Parameters):
                 print('No checkpoint file found')
                 return
 
-            for rawCTdir in rawCTlist:
+            for volume in volume_manager.volume_list:
                 time_b = time.time()
-                Volume = polyp_def.Volume_Data()
-                basedir = rawCTdir[:rawCTdir.rfind('/')]
-                print(basedir)
-                Volume.Set_Directory(basedir)
-                Volume.Load_Volume_Data()
-                Volume.load_colon_mask()
-                Volume.colon_mask_dilation()
-                Volume.colon_mask = 0
-                rawCTdata = Volume.rawdata
-                colon_mask = Volume.dilated_colon_mask
-                input_shape = Volume.shape
+                print(volume.base_dir)
+                volume.Load_Volume_Data()
+                volume.load_colon_dilation()
+                rawCTdata = volume.rawdata
+                colon_mask = volume.dilated_colon_mask
+                input_shape = volume.shape
 
                 score_map = np.zeros(input_shape)
 
@@ -103,98 +85,121 @@ def main(checkpoint_dir, record_dir, which, inference, Parameters):
 
                 result = score_map * colon_mask
 
-                dir = os.path.join(basedir, "score_map.nii.gz")
+                dir = os.path.join(volume.base_dir, "score_map.nii.gz")
                 img = SimpleITK.GetImageFromArray(result)
                 SimpleITK.WriteImage(img, dir)
-
+                volume.clear_volume_data()
                 print("time consumed %d" %(time.time()-time_b))
                 #break
 
 
 
 
-def Test(threshold, record_dir, ifwrite=False):
-    test_dir =record_dir + "testVolumeRecord.txt"
-
-    with open(test_dir, 'r') as f:
-        lines = f.readlines()
-    rawCTlist = []
-    for line in lines:
-        line = line[:-1]
-        for file in os.listdir(line):
-            if file == 'oriInterpolatedCTData.raw' or file == 'InterpolatedCTData.raw':
-                rawCTlist.append(os.path.join(line, file))
-                break
-    print("size:", len(rawCTlist))
-
+def analysis_of_screen(volume_manager, seed_threshold, grow_threshold=0.9, ):
     num_correct_candidates = 0
     num_false_candidates = 0
-    for rawCTdir in rawCTlist:
+    num_gold_candidates = 0
+    for volume in volume_manager.volume_list:
         time_b = time.time()
-        Volume = polyp_def.Volume_Data()
-        basedir = rawCTdir[:rawCTdir.rfind('/')]
-        print(basedir)
-        Volume.Set_Directory(basedir)
-        if not Volume.load_polyp_mask():
+        #print(volume.base_dir)
+        if not volume.load_polyp_mask():
             print("Wrong!!!!!!")
             raise EOFError
             continue
-        score_map = Volume.load_score_map('score_map.nii.gz')
-        print(score_map.shape)
-        print(Volume.polyp_mask.shape)
-        correct, polyp_num, false, output = score_map_processing(score_map, Volume.polyp_mask, threshold)
-        if correct < polyp_num:
-            print("not found!", rawCTdir, polyp_num, correct)
-        num_correct_candidates += correct
-        num_false_candidates += false
-        if ifwrite:
-            output_image = SimpleITK.GetImageFromArray(output)
-            SimpleITK.WriteImage(output_image, os.path.join(basedir, "segmentation.nii.gz"))
-        print("Time consumed: ", time.time()-time_b)
+        volume.load_score_map()
+        volume.Load_Volume_Data()
+        volume.load_polyp_mask()
 
+        #segmentation(volume, seed_threshold, grow_threshold)
+        num_gold, num_correct , num_false = confirm(volume)
+
+        if num_correct< num_gold:
+            print("not found!", volume.base_dir, num_gold, num_correct)
+        num_correct_candidates += num_correct
+        num_false_candidates += num_false
+        num_gold_candidates += num_gold
+
+        volume.clear_volume_data()
+        print("Time consumed: ", time.time()-time_b)
 
     print("Correct candidates totally: ", num_correct_candidates)
     print("False candidates totally: ", num_false_candidates)
 
-def score_map_processing(score_map, polyp_mask, threshold = 0.99):
-    label_thresholded = (score_map>threshold).astype(np.uint8)
-    labels_vol, labels_num = label(label_thresholded, scipy.ndimage.generate_binary_structure(3,2))
-    #print("number of candidates is: ", labels_num)
+def segmentation(volume, seed_threshold = 0.99, grow_threshold=0.9):
+    # Segmentation
+    seed_area = (volume.score_map>seed_threshold).astype(np.uint8)
+    region_grow_area = (volume.score_map>grow_threshold).astype(np.uint8)
+
+    labels_vol, labels_num = label(region_grow_area, scipy.ndimage.generate_binary_structure(3,2))
     objects = find_objects(labels_vol)             # Return slice. slice(begin,end,step)
-    num_correct_candidates = 0
+
+    num_candidates = 0
+    segment_fold = os.path.join(volume.base_dir, "segments")
+    if not os.path.exists(segment_fold):
+        os.mkdir(segment_fold)
+    for i in range(labels_num):
+        object = objects[i]
+        select_label_whole = np.zeros(volume.rawdata.shape, dtype=np.uint8)
+        select_label = labels_vol[object] == (i+1)
+        select_label_whole[object] = select_label
+        if np.sum(select_label*(seed_area[object])) == 0:
+            continue
+
+        center = scipy.ndimage.measurements.center_of_mass(region_grow_area, labels_vol, i+1)
+        center = np.array(center).astype(np.int)
+        left = center.copy()
+        left -= int(SCREEN_CROP_LEN/2)
+        #print(left)
+        cropped_ct_data = crop(volume.rawdata,SCREEN_CROP_LEN, left, -999)
+        cropped_segment = crop(volume.score_map,SCREEN_CROP_LEN, left, 0)
+        cropped_select_label_whole = crop(select_label_whole,SCREEN_CROP_LEN, left, 0)
+        cropped_segment = cropped_segment * cropped_select_label_whole
+
+        name = str(center[0])+"#"+str(center[1])+"#"+str(center[2])
+        SimpleITK.WriteImage(SimpleITK.GetImageFromArray(cropped_ct_data),
+                             os.path.join(segment_fold, name+"#ct"+".nii.gz"))
+        SimpleITK.WriteImage(SimpleITK.GetImageFromArray(cropped_segment),
+                             os.path.join(segment_fold, name+"#score"+".nii.gz"))
+        with open(os.path.join(segment_fold, name+"#result"), 'w') as f:
+            f.write("2")
+        num_candidates += 1
+
+
+def confirm(volume):
+    polyp_num = np.max(volume.polyp_mask)
+    polyp_found = np.zeros((polyp_num))
+    #print("Number of existing polyps is: ", polyp_num)
     num_false_candidates = 0
 
-    #polyp_labels, polyp_num = label(polyp_mask, scipy.ndimage.generate_binary_structure(3,2))
-    polyp_num = np.max(polyp_mask)
-    polyp_found = np.linspace(1, polyp_num, polyp_num, dtype=np.int)
-    #print(polyp_found)
-    #print("Number of existing polyps is: ", polyp_num)
+    segment_fold = os.path.join(volume.base_dir, "segments")
+    files = os.listdir(segment_fold)
+    files = sorted(files)
+    num_unit = 3
+    assert len(files)%num_unit == 0
+    for i in range(0, len(files), num_unit):
+        #cropped_ct_data = SimpleITK.GetArrayFromImage(SimpleITK.ReadImage(
+        #    os.path.join(segment_fold, files[i+1])))
+        cropped_score_data = SimpleITK.GetArrayFromImage(SimpleITK.ReadImage(
+            os.path.join(segment_fold, files[i+2])))
+        name_str = files[i][:files[i].rfind('#')]
+        temp = name_str.split('#')
+        center = np.array(temp).astype(np.int)
+        left = center.copy() - int(SCREEN_CROP_LEN/2)
+        cropped_polyp = crop(volume.polyp_mask, SCREEN_CROP_LEN, left, 0)
 
-    for i in range(1,labels_num+1):
-        object = objects[i-1]
-        target_vol = (labels_vol[object])==i
-        #print("No.", i)
-        #size = np.sum(target_whole_vol[object])
-        #print("size:",size)
-
-        #center = scipy.ndimage.measurements.center_of_mass(label_thresholded, labels_vol, i)
-        #center = np.array(center).astype(np.int)
-        #print("center: ", center)
-        #mean = scipy.ndimage.mean(score_map, labels_vol, i)
-        #print("mean: ", mean)
-        overlap = target_vol * polyp_mask[object]
+        fopen = open(os.path.join(segment_fold, name_str+"#result"), 'w')
+        overlap = cropped_polyp * (cropped_score_data!=0)
         if np.sum(overlap) > 0:
-            #print("It's a polyp!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            for j in range(1, polyp_num+1):
-                if j in overlap:
-                    if polyp_found[j-1] == j:
-                        num_correct_candidates += 1
-                        polyp_found[j-1] = 0
-
+            fopen.write("1")
+            for j in range(polyp_num):
+                if (j+1) in overlap:
+                    if polyp_found[j] == 0:
+                        polyp_found[j] = 1
         else:
+            fopen.write("0")
             num_false_candidates += 1
-            #print("Not a polyp!!!!!!!!!!!!!!!!!!!!!!!")
+        fopen.close()
 
-
-    return num_correct_candidates, polyp_num, num_false_candidates, labels_vol
+    print("Number of false positives is:", num_false_candidates)
+    return polyp_num, np.sum(polyp_found), num_false_candidates,
 
