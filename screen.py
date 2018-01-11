@@ -159,8 +159,7 @@ def main(checkpoint_dir, record_dir, whichone, inference, Parameters):
                 #    continue;
                 score_map = np.zeros((CUT_RAW_VOLUME_SIZE,CUT_RAW_VOLUME_SIZE,CUT_RAW_VOLUME_SIZE))
                 vol_input = polyp.polyp_crop_data.astype(np.float32)
-                count_map = np.zeros((CUT_RAW_VOLUME_SIZE,CUT_RAW_VOLUME_SIZE,CUT_RAW_VOLUME_SIZE))
-                screen_step = 30
+                screen_step = 16
                 x0 = 0
                 x1 = x0 + SCREEN_VOLUME_SIZE
                 while x1 <= CUT_RAW_VOLUME_SIZE:
@@ -175,13 +174,10 @@ def main(checkpoint_dir, record_dir, whichone, inference, Parameters):
                                               [1, SCREEN_VOLUME_SIZE, SCREEN_VOLUME_SIZE, SCREEN_VOLUME_SIZE, 1])
                             [result] = sess.run([logits], feed_dict={vol: resized_test_vol})
                             result = np.reshape(result, [SCREEN_VOLUME_SIZE, SCREEN_VOLUME_SIZE, SCREEN_VOLUME_SIZE])
-                            cenCrop = int((48-36)/2)
+                            cenCrop = int((48-24)/2)
                             score_map[x0+cenCrop:x1-cenCrop, y0+cenCrop:y1-cenCrop,
                                 z0+cenCrop:z1-cenCrop] = np.maximum(score_map[x0+cenCrop:x1-cenCrop, y0+cenCrop:y1-cenCrop,
                                 z0+cenCrop:z1-cenCrop], result[cenCrop:-cenCrop,cenCrop:-cenCrop, cenCrop:-cenCrop])
-                            count_map[x0 + cenCrop:x1 - cenCrop, y0 + cenCrop:y1 - cenCrop,
-                                      z0 + cenCrop:z1 - cenCrop] += 1
-
 
                             z0 += screen_step
                             z1 = z0 + SCREEN_VOLUME_SIZE
@@ -196,7 +192,7 @@ def main(checkpoint_dir, record_dir, whichone, inference, Parameters):
                 #score_map = aver_score_map * polyp.dilated_colon_mask_data
                 score_map = score_map * polyp.dilated_colon_mask_data
 
-                dir = os.path.join(polyp.base_folder_dir, "scroe_map.nii.gz")
+                dir = os.path.join(polyp.base_folder_dir, "score_map.nii.gz")
                 print(dir)
                 img = SimpleITK.GetImageFromArray(score_map)
                 SimpleITK.WriteImage(img, dir)
@@ -210,7 +206,7 @@ def Test(polyp_manager, threshold, ifwrite=False):
         #if polyp.INDEX != 224:
             #continue
         #print("-------------------------------------------------------------INDEX:", polyp.INDEX, "----")
-        score_map_dir = os.path.join(polyp.base_folder_dir, "scroe_map.nii.gz")
+        score_map_dir = os.path.join(polyp.base_folder_dir, "score_map.nii.gz")
         score_map1 = SimpleITK.GetArrayFromImage(SimpleITK
                                                  .ReadImage(score_map_dir))
         #score_map1 = np.where(score_map1>500, score_map1, 0)

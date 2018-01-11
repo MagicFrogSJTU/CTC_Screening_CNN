@@ -4,7 +4,7 @@ from __future__ import print_function
 
 class PARAMETERS:
     MOVING_AVERAGE = 0.999
-    INITIAL_LEARNING_RATE = 0.0001  #1e-4
+    INITIAL_LEARNING_RATE = 0.00001  #1e-4
     TYPEA = 0
     TYPEB = 0.001
     TRUE_SAMPLE_RATIO = 0.5

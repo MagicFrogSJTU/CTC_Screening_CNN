@@ -12,10 +12,11 @@ if __name__ == '__main__':
     checkpoint_dir = directory.get_current_checkpoint_dir()
     record_dir = os.path.join(directory.get_current_record_dir(),
                               'testVolumeRecord.txt')
-
+    multi_flag = [2,1]
+    print('multi_flag: ', multi_flag)
     volume_manager = Volume_Manager()
     volume_manager.get_volume_from_record(record_dir)
 
 
-    #screen_volume.screen_cnn(checkpoint_dir, volume_manager, inference, Parameters)
-    screen_volume.analysis_of_screen(volume_manager, seed_threshold=0.99, grow_threshold=0.9, )
+    screen_volume.screen_cnn(checkpoint_dir, volume_manager, inference, Parameters, multi_flag)
+    screen_volume.analysis_of_screen(volume_manager, 0.99, 0.9, multi_flag, )

@@ -23,5 +23,8 @@ if __name__ == '__main__':
     Test(polyp_manager, 0.999)
     Test(polyp_manager, 0.99, ifwrite=False)
     Test(polyp_manager, 0.9)
+    #Test(polyp_manager, 0.993)
+    #Test(polyp_manager, 0.995)
+    #Test(polyp_manager, 0.997)
     #Test(polyp_manager, 0.6)
     Test(polyp_manager, 0.5)

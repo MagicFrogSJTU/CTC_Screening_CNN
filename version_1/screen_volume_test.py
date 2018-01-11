@@ -18,4 +18,4 @@ if __name__ == '__main__':
 
 
     #screen_volume.screen_cnn(checkpoint_dir, volume_manager, inference, Parameters)
-    screen_volume.analysis_of_screen(volume_manager, seed_threshold=0.99, grow_threshold=0.9, )
+    screen_volume.analysis_of_screen(volume_manager, seed_threshold=0.95, grow_threshold=0.9, )

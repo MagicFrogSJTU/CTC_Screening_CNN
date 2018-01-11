@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
+import shutil
 import numpy as np
 import tensorflow as tf
 import os
@@ -16,7 +16,7 @@ import scipy.ndimage
 from screen import crop
 SCREEN_CROP_LEN = SCREEN_VOLUME_SIZE + 20
 
-def screen_cnn(checkpoint_dir, volume_manager, inference, Parameters):
+def screen_cnn(checkpoint_dir, volume_manager, inference, Parameters, multi_flag=[1,0]):
     with tf.Graph().as_default():
         vol = tf.placeholder(tf.float32, shape=(1, SCREEN_VOLUME_SIZE, SCREEN_VOLUME_SIZE, SCREEN_VOLUME_SIZE, 1))
         logits = inference(vol, False)
@@ -35,7 +35,9 @@ def screen_cnn(checkpoint_dir, volume_manager, inference, Parameters):
                 print('No checkpoint file found')
                 return
 
-            for volume in volume_manager.volume_list:
+            for index, volume in enumerate(volume_manager.volume_list):
+                if index%multi_flag[0] != multi_flag[1]:
+                    continue
                 time_b = time.time()
                 print(volume.base_dir)
                 volume.Load_Volume_Data()
@@ -46,7 +48,7 @@ def screen_cnn(checkpoint_dir, volume_manager, inference, Parameters):
 
                 score_map = np.zeros(input_shape)
 
-                screen_step = 30
+                screen_step = 16
                 x0 = 0
                 x1 = x0 + SCREEN_VOLUME_SIZE
                 while x1 <= input_shape[0]:
@@ -68,7 +70,7 @@ def screen_cnn(checkpoint_dir, volume_manager, inference, Parameters):
 
                             [result] = sess.run([logits], feed_dict={vol: resized_test_vol})
                             result = np.reshape(result, [SCREEN_VOLUME_SIZE, SCREEN_VOLUME_SIZE, SCREEN_VOLUME_SIZE])
-                            cenCrop = int((48 - 36) / 2)
+                            cenCrop = int((48 - 24) / 2)
                             score_map[x0 + cenCrop:x1 - cenCrop, y0 + cenCrop:y1 - cenCrop,
                             z0 + cenCrop:z1 - cenCrop] = np.maximum(
                                 score_map[x0 + cenCrop:x1 - cenCrop, y0 + cenCrop:y1 - cenCrop,
@@ -95,11 +97,14 @@ def screen_cnn(checkpoint_dir, volume_manager, inference, Parameters):
 
 
 
-def analysis_of_screen(volume_manager, seed_threshold, grow_threshold=0.9, ):
+def analysis_of_screen(volume_manager, seed_threshold, grow_threshold=0.9, multi_flag=[1,0]):
     num_correct_candidates = 0
     num_false_candidates = 0
     num_gold_candidates = 0
-    for volume in volume_manager.volume_list:
+    print("Total volumes:", len(volume_manager.volume_list))
+    for index, volume in enumerate(volume_manager.volume_list):
+        if index%multi_flag[0] != multi_flag[1]:
+            continue
         time_b = time.time()
         #print(volume.base_dir)
         if not volume.load_polyp_mask():
@@ -110,7 +115,7 @@ def analysis_of_screen(volume_manager, seed_threshold, grow_threshold=0.9, ):
         volume.Load_Volume_Data()
         volume.load_polyp_mask()
 
-        #segmentation(volume, seed_threshold, grow_threshold)
+        segmentation(volume, seed_threshold, grow_threshold)
         num_gold, num_correct , num_false = confirm(volume)
 
         if num_correct< num_gold:
@@ -136,6 +141,9 @@ def segmentation(volume, seed_threshold = 0.99, grow_threshold=0.9):
     num_candidates = 0
     segment_fold = os.path.join(volume.base_dir, "segments")
     if not os.path.exists(segment_fold):
+        os.mkdir(segment_fold)
+    else:
+        shutil.rmtree(segment_fold)
         os.mkdir(segment_fold)
     for i in range(labels_num):
         object = objects[i]
