@@ -168,7 +168,9 @@ def samples_augment(vol, mask, colon_mask, TRUE_SAMPLE_RATIO):
         count = 0
         while (True):
             count += 1
-            index_left = np.random.randint(1, CUT_RAW_VOLUME_SIZE-SCREEN_VOLUME_SIZE-1, (3))
+            index_left = np.random.randint(int(SCREEN_VOLUME_SIZE*0.25),
+                                           CUT_RAW_VOLUME_SIZE-SCREEN_VOLUME_SIZE-1-int(SCREEN_VOLUME_SIZE*0.25),
+                                           (3))
             index_right = index_left + SCREEN_VOLUME_SIZE
             cut = mask[index_left[0]:index_right[0],
                          index_left[1]:index_right[1],
@@ -176,7 +178,7 @@ def samples_augment(vol, mask, colon_mask, TRUE_SAMPLE_RATIO):
             colon_mask_cut = colon_mask[index_left[0]:index_right[0],
                          index_left[1]:index_right[1],
                          index_left[2]:index_right[2]]
-            if np.sum(cut) < 100 and np.sum(colon_mask_cut)>10000:
+            if np.sum(cut) < 0.5 and np.sum(colon_mask_cut)>10000:
                 sample_center = index_left + int(SCREEN_VOLUME_SIZE/2)
                 break
             if count>50:
@@ -200,8 +202,6 @@ def samples_augment(vol, mask, colon_mask, TRUE_SAMPLE_RATIO):
     #    SimpleITK.WriteImage(SimpleITK.GetImageFromArray(croped_vol), "/mnt/disk6/Yizhi/testVol.nii.gz")
     #    SimpleITK.WriteImage(SimpleITK.GetImageFromArray(croped_mask.astype(np.uint8)), "/mnt/disk6/Yizhi/testMask.nii.gz")
     #    raise EOFError
-
-    croped_vol = croped_vol/1000.0
 
     croped_mask = np.reshape(croped_mask,(SCREEN_VOLUME_SIZE,SCREEN_VOLUME_SIZE,SCREEN_VOLUME_SIZE,1))
     return croped_vol, croped_mask
