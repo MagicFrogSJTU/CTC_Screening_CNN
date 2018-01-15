@@ -172,8 +172,11 @@ def segmentation(volume, seed_threshold = 0.99, grow_threshold=0.9):
             f.write("2")
         num_candidates += 1
 
+def _bytes_feature(value):
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
-def confirm(volume):
+
+def confirm(volume, ):
     polyp_num = np.max(volume.polyp_mask)
     polyp_found = np.zeros((polyp_num))
     #print("Number of existing polyps is: ", polyp_num)
@@ -184,6 +187,7 @@ def confirm(volume):
     files = sorted(files)
     num_unit = 3
     assert len(files)%num_unit == 0
+
     for i in range(0, len(files), num_unit):
         #cropped_ct_data = SimpleITK.GetArrayFromImage(SimpleITK.ReadImage(
         #    os.path.join(segment_fold, files[i+1])))
@@ -193,10 +197,10 @@ def confirm(volume):
         temp = name_str.split('#')
         center = np.array(temp).astype(np.int)
         left = center.copy() - int(SCREEN_CROP_LEN/2)
-        cropped_polyp = crop(volume.polyp_mask, SCREEN_CROP_LEN, left, 0)
+        cropped_polyp_mask = crop(volume.polyp_mask, SCREEN_CROP_LEN, left, 0)
 
         fopen = open(os.path.join(segment_fold, name_str+"#result"), 'w')
-        overlap = cropped_polyp * (cropped_score_data!=0)
+        overlap = cropped_polyp_mask * (cropped_score_data!=0)
         if np.sum(overlap) > 0:
             fopen.write("1")
             for j in range(polyp_num):
@@ -211,3 +215,74 @@ def confirm(volume):
     print("Number of false positives is:", num_false_candidates)
     return polyp_num, np.sum(polyp_found), num_false_candidates,
 
+def produce_tf_samples(volume_manager, multi_flag):
+
+    num_correct_candidates = 0
+    num_false_candidates = 0
+    print("Total volumes:", len(volume_manager.volume_list))
+    for index, volume in enumerate(volume_manager.volume_list):
+        if index%multi_flag[0] != multi_flag[1]:
+            continue
+        time_b = time.time()
+        #print(volume.base_dir)
+        if not volume.load_polyp_mask():
+            print("Wrong!!!!!!")
+            raise EOFError
+            continue
+
+        volume.Load_Volume_Data()
+        volume.load_polyp_mask()
+
+        num_correct, num_false = produce_tf_samples_unit(volume)
+
+        num_correct_candidates += num_correct
+        num_false_candidates += num_false
+
+        volume.clear_volume_data()
+        print("Time consumed: ", time.time()-time_b)
+
+    print("Correct candidates totally: ", num_correct_candidates)
+    print("False candidates totally: ", num_false_candidates)
+
+
+
+def produce_tf_samples_unit(volume, ):
+    segment_fold = os.path.join(volume.base_dir, "segments")
+    files = os.listdir(segment_fold)
+    files = sorted(files)
+    num_unit = 3
+    assert len(files)%num_unit == 0
+
+    writer1 = tf.python_io.TFRecordWriter(
+        os.path.join(volume.base_dir, 'true_screen_samples.tf'))
+    writer2 = tf.python_io.TFRecordWriter(
+        os.path.join(volume.base_dir, 'false_screen_samples.tf'))
+    num_true = 0
+    num_false = 0
+    for i in range(0, len(files), num_unit):
+        cropped_ct_data = SimpleITK.GetArrayFromImage(SimpleITK.ReadImage(
+            os.path.join(segment_fold, files[i+0])))
+        cropped_score_data = SimpleITK.GetArrayFromImage(SimpleITK.ReadImage(
+            os.path.join(segment_fold, files[i+2])))
+        name_str = files[i][:files[i].rfind('#')]
+        temp = name_str.split('#')
+        center = np.array(temp).astype(np.int)
+        left = center.copy() - int(SCREEN_CROP_LEN/2)
+        cropped_polyp_mask = crop(volume.polyp_mask, SCREEN_CROP_LEN, left, 0)
+
+        fopen = open(os.path.join(segment_fold, name_str+"#result"), 'w')
+        overlap = cropped_polyp_mask * (cropped_score_data!=0)
+        example = tf.train.Example(features=tf.train.Features(feature={
+            'volume':_bytes_feature(cropped_ct_data.astype(np.float32).tostring()),  # be float32!
+            'mask':_bytes_feature(cropped_polyp_mask.astype(np.uint8).tostring()), }))
+        if np.sum(overlap)>0:
+            writer1.write(example.SerializeToString())
+            num_true += 1
+        else:
+            writer2.write(example.SerializeToString())
+            num_false += 1
+        fopen.close()
+
+    writer1.close()
+    writer2.close()
+    return num_true, num_false
