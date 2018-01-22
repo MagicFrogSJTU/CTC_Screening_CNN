@@ -16,7 +16,7 @@ import scipy.ndimage
 from screen import crop
 SCREEN_CROP_LEN = SCREEN_VOLUME_SIZE + 20
 
-def screen_cnn(checkpoint_dir, volume_manager, inference, Parameters, multi_flag=[1,0]):
+def screen_cnn(checkpoint_dir, volume_manager, inference, Parameters, multi_flag=[1,0], result_file_fold=''):
     with tf.Graph().as_default():
         vol = tf.placeholder(tf.float32, shape=(1, SCREEN_VOLUME_SIZE, SCREEN_VOLUME_SIZE, SCREEN_VOLUME_SIZE, 1))
         logits = inference(vol, False)
@@ -87,9 +87,15 @@ def screen_cnn(checkpoint_dir, volume_manager, inference, Parameters, multi_flag
 
                 result = score_map * colon_mask
 
-                dir = os.path.join(volume.base_dir, "score_map.nii.gz")
+                fold = os.path.join(volume.base_dir, result_file_fold)
+                if not os.path.exists(fold):
+                    os.mkdir(fold)
+                else:
+                    shutil.rmtree(fold)
+                    os.mkdir(fold)
+                directory = os.path.join(fold, "score_map.nii.gz")
                 img = SimpleITK.GetImageFromArray(result)
-                SimpleITK.WriteImage(img, dir)
+                SimpleITK.WriteImage(img, directory)
                 volume.clear_volume_data()
                 print("time consumed %d" %(time.time()-time_b))
                 #break
@@ -97,7 +103,7 @@ def screen_cnn(checkpoint_dir, volume_manager, inference, Parameters, multi_flag
 
 
 
-def analysis_of_screen(volume_manager, seed_threshold, grow_threshold=0.9, multi_flag=[1,0]):
+def analysis_of_screen(volume_manager, seed_threshold, grow_threshold=0.9, multi_flag=[1,0], result_file_fold=''):
     num_correct_candidates = 0
     num_false_candidates = 0
     num_gold_candidates = 0
@@ -111,12 +117,12 @@ def analysis_of_screen(volume_manager, seed_threshold, grow_threshold=0.9, multi
             print("Wrong!!!!!!")
             raise EOFError
             continue
-        volume.load_score_map()
+        volume.load_score_map(result_file_fold)
         volume.Load_Volume_Data()
         volume.load_polyp_mask()
 
-        segmentation(volume, seed_threshold, grow_threshold)
-        num_gold, num_correct , num_false = confirm(volume)
+        segmentation(volume, seed_threshold, grow_threshold, result_file_fold)
+        num_gold, num_correct , num_false = confirm(volume, result_file_fold)
 
         if num_correct< num_gold:
             print("not found!", volume.base_dir, num_gold, num_correct)
@@ -130,7 +136,7 @@ def analysis_of_screen(volume_manager, seed_threshold, grow_threshold=0.9, multi
     print("Correct candidates totally: ", num_correct_candidates)
     print("False candidates totally: ", num_false_candidates)
 
-def segmentation(volume, seed_threshold = 0.99, grow_threshold=0.9):
+def segmentation(volume, seed_threshold, grow_threshold, result_file_fold=''):
     # Segmentation
     seed_area = (volume.score_map>seed_threshold).astype(np.uint8)
     region_grow_area = (volume.score_map>grow_threshold).astype(np.uint8)
@@ -139,7 +145,7 @@ def segmentation(volume, seed_threshold = 0.99, grow_threshold=0.9):
     objects = find_objects(labels_vol)             # Return slice. slice(begin,end,step)
 
     num_candidates = 0
-    segment_fold = os.path.join(volume.base_dir, "segments")
+    segment_fold = os.path.join(volume.base_dir, result_file_fold, "segments")
     if not os.path.exists(segment_fold):
         os.mkdir(segment_fold)
     else:
@@ -176,13 +182,13 @@ def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
-def confirm(volume, ):
+def confirm(volume, result_file_fold=''):
     polyp_num = np.max(volume.polyp_mask)
     polyp_found = np.zeros((polyp_num))
     #print("Number of existing polyps is: ", polyp_num)
     num_false_candidates = 0
 
-    segment_fold = os.path.join(volume.base_dir, "segments")
+    segment_fold = os.path.join(volume.base_dir, result_file_fold, "segments")
     files = os.listdir(segment_fold)
     files = sorted(files)
     num_unit = 3
@@ -215,7 +221,7 @@ def confirm(volume, ):
     print("Number of false positives is:", num_false_candidates)
     return polyp_num, np.sum(polyp_found), num_false_candidates,
 
-def produce_tf_samples(volume_manager, multi_flag):
+def produce_tf_samples(volume_manager, multi_flag, result_file_fold=''):
 
     num_correct_candidates = 0
     num_false_candidates = 0
@@ -233,7 +239,7 @@ def produce_tf_samples(volume_manager, multi_flag):
         volume.Load_Volume_Data()
         volume.load_polyp_mask()
 
-        num_correct, num_false = produce_tf_samples_unit(volume)
+        num_correct, num_false = produce_tf_samples_unit(volume, result_file_fold)
 
         num_correct_candidates += num_correct
         num_false_candidates += num_false
@@ -246,17 +252,17 @@ def produce_tf_samples(volume_manager, multi_flag):
 
 
 
-def produce_tf_samples_unit(volume, ):
-    segment_fold = os.path.join(volume.base_dir, "segments")
+def produce_tf_samples_unit(volume, result_file_fold=''):
+    segment_fold = os.path.join(volume.base_dir, result_file_fold, "segments")
     files = os.listdir(segment_fold)
     files = sorted(files)
     num_unit = 3
     assert len(files)%num_unit == 0
 
     writer1 = tf.python_io.TFRecordWriter(
-        os.path.join(volume.base_dir, 'true_screen_samples.tf'))
+        os.path.join(volume.base_dir, result_file_fold, 'true_screen_samples.tf'))
     writer2 = tf.python_io.TFRecordWriter(
-        os.path.join(volume.base_dir, 'false_screen_samples.tf'))
+        os.path.join(volume.base_dir, result_file_fold, 'false_screen_samples.tf'))
     num_true = 0
     num_false = 0
     for i in range(0, len(files), num_unit):

@@ -91,7 +91,7 @@ class Polyp_Manager:
         f_test_vol.close()
 
 ##############################################################################################################
-    def train_test_cross_validation_seperation(self, pieces=10):
+    def train_test_cross_validation_seperation(self, pieces=5):
         base_dir = os.path.join(self.dataDirectory.base_dir, self.cross_validation_fold)
         database_dir = self.dataDirectory.data_base_dir()
 
@@ -479,21 +479,21 @@ if __name__ == '__main__':
 
 
     # Generate train set and test test.
-    if 0:
+    if 1:
         polyp_manager = Polyp_Manager()
         #polyp_manager.train_test_independent_seperation()
-        #polyp_manager.train_test_cross_validation_seperation()
-        polyp_manager.train_test_independent_seperation(index_of_test=1, ratio=0.2)
+        polyp_manager.train_test_cross_validation_seperation()
+        #polyp_manager.train_test_independent_seperation(index_of_test=1, ratio=0.2)
 
     if 0:
         polyp_manager = Polyp_Manager()
         polyp_manager.read_polyps_from_disk(whichone='test')
         for polyp in polyp_manager.polyp_list:
             print(polyp.INDEX, np.sum(polyp.mask[56:104,56:104,56:104]))
-    if 1:
+    if 0:
         volume_manager = Volume_Manager()
         dataDir = dataDirectory.DataDirectory()
-        volume_record_dir = os.path.join(dataDir.get_current_record_dir(), "trainVolumeRecord.txt")
+        volume_record_dir = os.path.join(dataDir.get_current_record_dir(), "testVolumeRecord.txt")
         volume_manager.get_volume_from_record(volume_record_dir)
         volume_manager.calculate_colon_mask_dilation()
 

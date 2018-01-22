@@ -81,12 +81,15 @@ def read_data(filename_queue, Parameters):
     colon_mask.set_shape(POLYP_VOLUME_SIZE[0]*POLYP_VOLUME_SIZE[1]*POLYP_VOLUME_SIZE[2])
     colon_mask = tf.reshape(colon_mask, MASK_VOLUME_SIZE)
 
-    sample_center = tf.py_func(samples_augment, [mask, colon_mask, Parameters.TRUE_SAMPLE_RATIO], tf.int32, stateful=False)
+    global_step = tf.train.get_or_create_global_step()
+    ratio = tf.cond(global_step<1000, lambda:tf.constant(1.0), lambda:tf.constant(0.5))
+    sample_center = tf.py_func(samples_augment, [mask, colon_mask, ratio], tf.int32, stateful=False)
     sample_center.set_shape([3])
 
     # rotate
-    afa = tf.random_uniform([1], minval=0, maxval=2 * np.pi)
-    beta = tf.random_uniform([1], minval=0, maxval=2 * np.pi)
+    degrees = tf.random_uniform([2], minval=0, maxval=2*np.pi, dtype=tf.float32)
+    afa = degrees[0]
+    beta = degrees[1]
     if_flip = tf.random_uniform([3], minval=0, maxval=1)
     croped_vol = rotate_3d(volume, sample_center, MASK_SCREEN_SIZE, afa, beta, if_flip)
     croped_mask = rotate_3d(mask, sample_center, MASK_SCREEN_SIZE, afa, beta, if_flip)
@@ -124,8 +127,8 @@ def _generate_image_and_label_batch(image, label, min_queue_examples,
         images, label_batch = tf.train.batch(
             [image, label],
             batch_size=batch_size,
-            num_threads=num_preprocess_threads,
-            capacity=min_queue_examples + 1 * batch_size)
+            num_threads=1,
+            capacity=1 * batch_size)
     return images, label_batch
 
 

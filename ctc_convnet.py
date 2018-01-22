@@ -35,7 +35,7 @@ def train(total_loss, global_step, Parameters):
         train_op: op for training.
     """
     #update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-    lr = tf.train.exponential_decay(Parameters.INITIAL_LEARNING_RATE, global_step, 1000, 0.95, name='exponential_decay')
+    lr = tf.train.exponential_decay(Parameters.INITIAL_LEARNING_RATE, global_step, 1000, 0.85, name='exponential_decay')
     tf.summary.scalar('learning rate', lr)
 
     opt = tf.train.AdamOptimizer(lr)

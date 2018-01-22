@@ -16,12 +16,17 @@ tf.logging.set_verbosity(tf.logging.INFO)
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-Parameters.eval_interval_secs=180
+Parameters.eval_interval_secs=120
 Parameters.run_once=False
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("--fold", type=int, help='which cross validation fold')
+FLAGS = parser.parse_args()
 
 def main(argv=None):
     dataDirectory = DataDirectory()
+    dataDirectory.cross_index = FLAGS.fold
     model_dir = dataDirectory.get_current_model_dir()
     eval_dir = os.path.join(dataDirectory.get_current_model_dir(),
                              dataDirectory.eval_fold)
@@ -29,7 +34,6 @@ def main(argv=None):
     if tf.gfile.Exists(eval_dir):
         tf.gfile.DeleteRecursively(eval_dir)
     tf.gfile.MakeDirs(eval_dir)
-    print("dice_typeB_0.01_2res_2slices_2 directory:", model_dir)
     print("record directory:", record_file_dir)
     evaluate(model_dir, record_file_dir, dataDirectory.data_base_dir(), inference, Parameters)
 

@@ -58,11 +58,11 @@ def train(train_dir, record_file_dir, database_dir, inference, getloss, Paramete
         tower_grads = []
 
         decay_learning_rate = tf.train.exponential_decay(Parameters.INITIAL_LEARNING_RATE, global_step,
-                                                         decay_steps=1000, decay_rate=0.9)
+                                                         decay_steps=1000, decay_rate=0.95)
         opt = tf.train.AdamOptimizer(decay_learning_rate)
 
         with tf.variable_scope(tf.get_variable_scope()):
-            for i in range(0, Parameters.NUM_GPUS):
+            for i in range(1, Parameters.NUM_GPUS+1):
                 with tf.device('/gpu:%d' % i):
                     with tf.name_scope('%s_%d' % ('gpu', i)) as scope:
                         vol_batch, label_batch = batch_queue.dequeue()
@@ -108,8 +108,8 @@ def train(train_dir, record_file_dir, database_dir, inference, getloss, Paramete
                     self._start_time = current_time
 
                     loss_value = run_values.results
-                    examples_per_sec = (Parameters.NUM_GPUS-1)*Parameters.LOG_FREQUENCY*Parameters.BATCH_SIZE/ duration
-                    sec_per_batch = float(duration /Parameters.LOG_FREQUENCY/ (Parameters.NUM_GPUS-1))
+                    examples_per_sec = (Parameters.NUM_GPUS)*Parameters.LOG_FREQUENCY*Parameters.BATCH_SIZE/ duration
+                    sec_per_batch = float(duration /Parameters.LOG_FREQUENCY/ (Parameters.NUM_GPUS))
 
                     format_str = ('%s: step %d, loss = %.3f (%.1f examples/sec; %.3f '
                                   'sec/batch)')

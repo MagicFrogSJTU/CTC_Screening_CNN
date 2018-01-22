@@ -9,14 +9,15 @@ class DataDirectory:
     eval_fold = 'Screen/Eval'
     cross_validation_fold = 'cross_validation'
     independent_fold = 'independent_validation'
+    cross_index = 0
 
     def data_base_dir(self):
         return self.base_dir + 'polypdata/'
 
-    def cross_validation_item(self, num=0):
-        return "cross_" + str(num)
-    def cross_validation_dir(self, num=0):
-        return self.base_dir + self.cross_validation_fold + '/' + self.cross_validation_item(num) + '/'
+    def cross_validation_item(self,):
+        return "cross_" + str(self.cross_index)
+    def cross_validation_dir(self,):
+        return self.base_dir + self.cross_validation_fold + '/' + str(self.cross_index) + '/'
 
     def independent_validation_item(self, num=1):
         return "independent_" + str(num)
@@ -30,12 +31,13 @@ class DataDirectory:
     # !! User decides!
     def get_current_model_dir(self):
         pwd = os.getcwd()
-        return pwd+"/"+self.independent_validation_item()
+        return pwd+"/"+self.cross_validation_item()
+        #return pwd+"/"+self.independent_validation_item()
     def get_current_checkpoint_dir(self):
         return os.path.join(self.get_current_model_dir(),
                              self.checkpoint_fold)
     def get_current_record_dir(self):
-        return self.independent_dir()
+        return self.cross_validation_dir()
     def get_current_test_record_dir(self):
         return self.get_current_record_dir()+"/testSet.txt"
     def get_current_train_record_dir(self):

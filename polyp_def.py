@@ -254,15 +254,21 @@ class Volume_Data:
         structure = generate_binary_structure(3,2)
         self.dilated_colon_mask = binary_dilation(self.colon_mask, structure, iterations).astype(np.uint8)
 
-    def load_polyp_mask(self):
+    def load_polyp_mask(self, ):
         if not os.path.exists(os.path.join(self.base_dir, "polyp_mask.nrrd")):
-            return 0
+            raise EOFError
         image = SimpleITK.ReadImage(os.path.join(self.base_dir, "polyp_mask.nrrd"))
         self.polyp_mask = SimpleITK.GetArrayFromImage(image)
         return 1
 
-    def load_score_map(self, name='score_map.nii.gz'):
-        image = SimpleITK.ReadImage(os.path.join(self.base_dir, name))
+    def load_score_map(self, fold=0, name='score_map.nii.gz'):
+        if fold==0:
+            base_path = os.path.join(self.base_dir, "score_map.nii.gz")
+        else:
+            base_path = os.path.join(self.base_dir, fold, "score_map.nii.gz")
+        if not os.path.exists(base_path):
+            return 0
+        image = SimpleITK.ReadImage(base_path)
         self.score_map = SimpleITK.GetArrayFromImage(image)
         return self.score_map
 
