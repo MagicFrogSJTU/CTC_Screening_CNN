@@ -35,7 +35,7 @@ def rotate_3d(input, sample_center, size, afa, beta, if_flip):
     crop_left = sample_center - 36  # tf.constant((size*1.5/2.0).astype(np.int32))
     cropped_input = tf.slice(input, begin=crop_left, size=[72, 72, 72])
 
-    with tf.name_scope('rotate'), tf.device('/gpu:2'):
+    with tf.name_scope('rotate'), tf.device('/gpu:0'):
         #size = np.array(size)
         with tf.name_scope('afa'):
             # afa.
@@ -146,7 +146,7 @@ def inputs(train_or_eval, batch_size, record_file_dir, database_dir, Parameters)
         filename_queue = tf.train.string_input_producer(file_names)
 
         # Read examples from files in the filename queue.
-        threads = 8
+        threads = 3
         example_list = [read_data(filename_queue, Parameters) for _ in range(threads)]
 
         return tf.train.shuffle_batch_join(

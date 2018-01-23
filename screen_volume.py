@@ -14,7 +14,7 @@ from scipy.ndimage import label
 from scipy.ndimage import find_objects
 import scipy.ndimage
 from screen import crop
-SCREEN_CROP_LEN = SCREEN_VOLUME_SIZE + 20
+SCREEN_CROP_LEN = 72 + 20
 
 def screen_cnn(checkpoint_dir, volume_manager, inference, Parameters, multi_flag=[1,0], result_file_fold=''):
     with tf.Graph().as_default():
