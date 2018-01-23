@@ -30,6 +30,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--fold", type=int, help='which cross validation fold')
 FLAGS = parser.parse_args()
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
 def getloss(logits, labels, scope):
     num_of_labels_vol = tf.reduce_sum(labels, [1, 2, 3, 4])
