@@ -25,7 +25,7 @@ import time
 from scipy.ndimage import binary_dilation
 from scipy.ndimage import generate_binary_structure
 from multiprocessing import Manager
-from screen import crop
+from screen_test_run import crop
 from dataDirectory import DataDirectory
 import dataDirectory
 
@@ -92,18 +92,39 @@ class Polyp_Manager:
 
 ##############################################################################################################
     def train_test_cross_validation_seperation(self, pieces=5):
-        base_dir = os.path.join(self.dataDirectory.base_dir, self.cross_validation_fold)
+        base_record_dir = os.path.join(self.dataDirectory.base_dir(), self.cross_validation_fold)
         database_dir = self.dataDirectory.data_base_dir()
 
-        if not os.path.exists(base_dir):
-            os.mkdir(base_dir)
+        if not os.path.exists(base_record_dir):
+            os.mkdir(base_record_dir)
         volume_folds = os.listdir(database_dir)
-        num = len(volume_folds)
+        data_dict = {}
+        for volume_fold in volume_folds:
+            volume_dir = os.path.join(database_dir, volume_fold)
+            with open(os.path.join(volume_dir, "CT_volume_base_dir.txt")) as f:
+                data_fold = f.read()
+            data_fold = data_fold[36:]
+            patient_name = data_fold[:data_fold.find("/")]
+            rest_line = data_fold[data_fold.find("/")+1:]
+            if "File" in patient_name:
+                patient_name += "/" + rest_line[:rest_line.find("/")]
+                rest_line = rest_line[rest_line.find("/")+1:]
+            if patient_name not in data_dict:
+                data_dict[patient_name] = []
+            data_dict[patient_name].append([volume_fold, rest_line])
+
+        for patient_name in data_dict:
+            if len(data_dict[patient_name]) != 2:
+                print(patient_name)
+                print(data_dict[patient_name])
+
+        num = len(data_dict)
+        random_choice = np.linspace(0,num-1,num)
+        np.random.shuffle(random_choice)
+
         chunk_num = int(num*1.0/pieces)+1
-        choice = np.array(volume_folds)
-        np.random.shuffle(choice)
         for i in range(pieces):
-            sess_dir = os.path.join(base_dir, str(i))
+            sess_dir = os.path.join(base_record_dir, str(i))
             if not os.path.exists(sess_dir):
                 os.mkdir(sess_dir)
             f_train = open(os.path.join(sess_dir,"trainSet.txt"), "w")
@@ -111,23 +132,32 @@ class Polyp_Manager:
             f_train_vol = open(os.path.join(sess_dir, "trainVolumeRecord.txt"), 'w')
             f_test_vol = open(os.path.join(sess_dir, "testVolumeRecord.txt"), 'w')
             for j in range(num):
-                volume_dir = os.path.join(database_dir, str(choice[j]))
-                for polyp_fold in os.listdir(volume_dir):
-                    if not os.path.isdir(os.path.join(volume_dir, polyp_fold)):
-                        assert polyp_fold == "CT_volume_base_dir.txt"
-                        with open(os.path.join(volume_dir, polyp_fold), 'r') as f:
-                            line = f.read()
-                        if j >= (chunk_num * i) and j < ((i + 1) * chunk_num):
-                            f_test_vol.write(line+"\n")
-                        else:
-                            f_train_vol.write(line+"\n")
-                        continue
-                    if j>=(chunk_num*i) and j<((i+1)*chunk_num):
-                        f_test.write("%d %d \n" %(int(choice[j]), int(polyp_fold)))
+                for index, data_unit in enumerate(data_dict):
+                    if index == random_choice[j]:
+                        patient_name = data_unit
+                        values = data_dict[data_unit]
+
+                for value in values:
+                    volume_dir = os.path.join(database_dir, str(value[0]))
+                    line = patient_name + '/' + value[1]
+
+                    if j >= (chunk_num * i) and j < ((i + 1) * chunk_num):
+                        f_test_vol.write(line+"\n")
                     else:
-                        f_train.write("%d %d \n" %(int(choice[j]), int(polyp_fold)))
+                        f_train_vol.write(line+"\n")
+
+                    for polyp_fold in os.listdir(volume_dir):
+                        if not os.path.isdir(os.path.join(volume_dir, polyp_fold)):
+                            assert polyp_fold == "CT_volume_base_dir.txt"
+                            continue
+                        if j>=(chunk_num*i) and j<((i+1)*chunk_num):
+                            f_test.write("%d %d \n" %(int(value[0]), int(polyp_fold)))
+                        else:
+                            f_train.write("%d %d \n" %(int(value[0]), int(polyp_fold)))
             f_test.close()
             f_train.close()
+            f_train_vol.close()
+            f_test_vol.close()
 
 ####################################################################################################################
 
@@ -431,12 +461,14 @@ class Polyp_Manager:
 
 class Volume_Manager:
 
-    def get_volume_from_record(self, record_url):
+    def get_volume_from_record(self, record_url, base_url):
         with open(record_url, 'r') as f:
             lines = f.readlines()
         self.volume_list = []
         for line in lines:
             line = line[:-1]
+            line = base_url + "/SegmentedColonData/" + line
+            print(line)
             for file in os.listdir(line):
                 if file == 'oriInterpolatedCTData.raw' or file == 'InterpolatedCTData.raw':
                     new_volume = polyp_def.Volume_Data()

@@ -3,7 +3,7 @@ import os
 
 sys.path.append(os.getcwd() + "/..")
 #os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-import screen_volume
+import screen
 from polyp_def import Volume_Data
 
 volume = Volume_Data()
@@ -16,6 +16,6 @@ volume.load_score_map()
 volume.Load_Volume_Data()
 volume.load_polyp_mask()
 
-screen_volume.segmentation(volume, 0.99, 0.9)
-num_gold, num_correct , num_false = screen_volume.confirm(volume)
+screen.segmentation(volume, 0.99, 0.9)
+num_gold, num_correct , num_false = screen.confirm(volume)
 print(num_gold, num_correct, num_false)

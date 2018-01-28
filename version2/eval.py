@@ -10,13 +10,13 @@ sys.path.append(os.path.join(os.getcwd(),".."))
 import tensorflow as tf
 from dataDirectory import DataDirectory
 from ctc_screen_eval import evaluate
-from screen_cnn import inference
+from network import inference
 from model_train import Parameters
 tf.logging.set_verbosity(tf.logging.INFO)
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-Parameters.eval_interval_secs=120
+Parameters.eval_interval_secs=180
 Parameters.run_once=False
 
 import argparse
@@ -30,12 +30,10 @@ def main(argv=None):
     model_dir = dataDirectory.get_current_model_dir()
     eval_dir = os.path.join(dataDirectory.get_current_model_dir(),
                              dataDirectory.eval_fold)
-    record_file_dir = dataDirectory.get_current_test_record_dir()
     if tf.gfile.Exists(eval_dir):
         tf.gfile.DeleteRecursively(eval_dir)
     tf.gfile.MakeDirs(eval_dir)
-    print("record directory:", record_file_dir)
-    evaluate(model_dir, record_file_dir, dataDirectory.data_base_dir(), inference, Parameters)
+    evaluate(model_dir, dataDirectory, inference, Parameters)
 
 
 if __name__ == '__main__':
