@@ -105,9 +105,11 @@ def eval_once(saver, checkpoint_dir, number_of_samples, summary_writer, summary_
         coord.join(threads, stop_grace_period_secs=10)
 
 
-def evaluate(model_dir, record_dir, database_dir, inference, Parameters):
+def evaluate(model_dir, dataDir, inference, Parameters):
     """Eval for a number of steps."""
     number_of_samples = 0
+    record_dir = dataDir.get_current_test_record_dir()
+    print("current record directory", record_dir)
     with open(record_dir, 'r') as f:
         number_of_samples = len(f.readlines())
     print("number of samples:", number_of_samples)
@@ -117,7 +119,7 @@ def evaluate(model_dir, record_dir, database_dir, inference, Parameters):
     checkpoint_dir = os.path.join(model_dir, dataDirectory.checkpoint_fold)
     with tf.Graph().as_default()as g:
         with tf.device('/cpu:0'):
-            volumes, labels = ctc_convnet.inputs(False, record_dir, database_dir, Parameters)
+            volumes, labels = ctc_convnet.inputs(False, dataDir, Parameters)
 
 
         # Build a Graph that computes the logits predictions from the

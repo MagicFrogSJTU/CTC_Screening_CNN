@@ -115,7 +115,7 @@ def test(vol, mask):
 
 def _generate_image_and_label_batch(image, label, min_queue_examples,
                                     batch_size, shuffle=1):
-    num_preprocess_threads = 12
+    num_preprocess_threads = 1
     if shuffle:
         images, label_batch = tf.train.shuffle_batch_join(
             [image, label],
@@ -132,9 +132,12 @@ def _generate_image_and_label_batch(image, label, min_queue_examples,
     return images, label_batch
 
 
-def inputs(train_or_eval, batch_size, record_file_dir, database_dir, Parameters):
+def inputs(train_or_eval, batch_size, dataDir, Parameters):
     '''Read input data num_epochs time'''
     if train_or_eval:
+        record_file_dir = dataDir.get_current_train_record_dir()
+        print("record directory:", record_file_dir)
+        database_dir = dataDir.data_base_dir()
         fopen = open(record_file_dir)
         lines = fopen.readlines()
         file_names = []
@@ -146,7 +149,7 @@ def inputs(train_or_eval, batch_size, record_file_dir, database_dir, Parameters)
         filename_queue = tf.train.string_input_producer(file_names)
 
         # Read examples from files in the filename queue.
-        threads = 3
+        threads = 4
         example_list = [read_data(filename_queue, Parameters) for _ in range(threads)]
 
         return tf.train.shuffle_batch_join(
@@ -156,6 +159,9 @@ def inputs(train_or_eval, batch_size, record_file_dir, database_dir, Parameters)
             min_after_dequeue=num_examples_per_epoch)
 
     else:
+        record_file_dir = dataDir.get_current_test_record_dir()
+        print("record directory:", record_file_dir)
+        database_dir = dataDir.data_base_dir()
         fopen = open(record_file_dir)
         lines = fopen.readlines()
         file_names = []

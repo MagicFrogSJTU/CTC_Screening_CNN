@@ -4,28 +4,31 @@ from baseurl import baseurl
 
 
 class DataDirectory:
-    base_dir = baseurl
+    baseurl = baseurl
     checkpoint_fold = 'Screen/Train'
     eval_fold = 'Screen/Eval'
     cross_validation_fold = 'cross_validation'
     independent_fold = 'independent_validation'
     cross_index = 0
 
+    def base_dir(self):
+        return self.baseurl
+
     def data_base_dir(self):
-        return self.base_dir + 'polypdata/'
+        return self.base_dir() + 'polypdata/'
 
     def cross_validation_item(self,):
         return "cross_" + str(self.cross_index)
     def cross_validation_dir(self,):
-        return self.base_dir + self.cross_validation_fold + '/' + str(self.cross_index) + '/'
+        return self.base_dir() + self.cross_validation_fold + '/' + str(self.cross_index) + '/'
 
     def independent_validation_item(self, num=1):
         return "independent_" + str(num)
     def independent_dir(self, num=1):
-        return self.base_dir + self.independent_fold + "/" + self.independent_validation_item(num) + '/'
+        return self.base_dir() + self.independent_fold + "/" + self.independent_validation_item(num) + '/'
 
     def raw_CTdata_dir(self):
-        return self.base_dir + 'SegmentedColonData/'
+        return self.base_dir() + 'SegmentedColonData/'
 
 
     # !! User decides!

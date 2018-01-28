@@ -9,7 +9,7 @@ import ctc_input
 import tensorflow as tf
 import numpy as np
 import scipy.ndimage
-import ctc_input_cpu
+#import ctc_input_cpu
 
 def dialate(labels):
     a = labels.astype(np.uint8)
@@ -35,7 +35,7 @@ def train(total_loss, global_step, Parameters):
         train_op: op for training.
     """
     #update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-    lr = tf.train.exponential_decay(Parameters.INITIAL_LEARNING_RATE, global_step, 1000, 0.85, name='exponential_decay')
+    lr = tf.train.exponential_decay(Parameters.INITIAL_LEARNING_RATE, global_step, 10000, 0.9, name='exponential_decay')
     tf.summary.scalar('learning rate', lr)
 
     opt = tf.train.AdamOptimizer(lr)
@@ -51,7 +51,7 @@ def train(total_loss, global_step, Parameters):
     return train_op
 
 
-def inputs(eval_data, record_file_dir, database_dir, Parameters):
+def inputs(eval_data, dataDir, Parameters):
     """Construct input for CIFAR evaluation using the Reader ops.
 
     Args:
@@ -67,14 +67,16 @@ def inputs(eval_data, record_file_dir, database_dir, Parameters):
     if eval_data:
         if Parameters.ROTATE_GPU:
             print("GPU ROTATION")
-            images, labels = ctc_input.inputs(eval_data, Parameters.BATCH_SIZE, record_file_dir, database_dir,
+            images, labels = ctc_input.inputs(eval_data, Parameters.BATCH_SIZE, dataDir,
                                           Parameters)
         else:
-            print("CPU ROTATION")
-            images, labels = ctc_input_cpu.inputs(eval_data, Parameters.BATCH_SIZE, record_file_dir, database_dir,
-                                          Parameters)
+            raise EOFError
+            #TODO
+            #print("CPU ROTATION")
+            #images, labels = ctc_input_cpu.inputs(eval_data, Parameters.BATCH_SIZE, record_file_dir, database_dir,
+            #                              Parameters)
             
     else:
-        images, labels = ctc_input.inputs(eval_data, 1, record_file_dir, database_dir,Parameters)
+        images, labels = ctc_input.inputs(eval_data, 1, dataDir, Parameters)
 
     return images, labels
