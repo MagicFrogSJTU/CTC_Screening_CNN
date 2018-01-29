@@ -1,5 +1,5 @@
 #!/bin/bash
-FOLD=0
+FOLD=1
 echo $FOLD
 python train.py --fold=$FOLD
 python screen_test.py --fold=$FOLD
