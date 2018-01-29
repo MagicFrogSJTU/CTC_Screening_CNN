@@ -468,7 +468,7 @@ class Volume_Manager:
         for line in lines:
             line = line[:-1]
             line = base_url + "/SegmentedColonData/" + line
-            print(line)
+            #print(line)
             for file in os.listdir(line):
                 if file == 'oriInterpolatedCTData.raw' or file == 'InterpolatedCTData.raw':
                     new_volume = polyp_def.Volume_Data()

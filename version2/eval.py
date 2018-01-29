@@ -11,7 +11,7 @@ import tensorflow as tf
 from dataDirectory import DataDirectory
 from ctc_screen_eval import evaluate
 from network import inference
-from model_train import Parameters
+from train import Parameters
 tf.logging.set_verbosity(tf.logging.INFO)
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
