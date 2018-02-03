@@ -18,7 +18,7 @@ if __name__ == '__main__':
     directory.cross_index = FLAGS.fold
     checkpoint_dir = directory.get_current_checkpoint_dir()
     record_dir = os.path.join(directory.get_current_record_dir(),
-                              'trainVolumeRecord.txt')
+                              'testVolumeRecord.txt')
     print(checkpoint_dir)
     print(record_dir)
     multi_flag = [1,0]
@@ -28,6 +28,6 @@ if __name__ == '__main__':
     volume_manager.get_volume_from_record(record_dir, base_dir)
 
     result_file_fold = str(directory.cross_index)
-    screen_volume.screen_cnn(checkpoint_dir, volume_manager, inference, Parameters, multi_flag, result_file_fold)
-    screen_volume.analysis_of_screen(volume_manager, 0.999, 0.99, multi_flag, result_file_fold)
+    #screen_volume.screen_cnn(checkpoint_dir, volume_manager, inference, Parameters, multi_flag, result_file_fold)
+    #screen_volume.analysis_of_screen(volume_manager, 0.999, 0.99, multi_flag, result_file_fold)
     screen_volume.produce_tf_samples(volume_manager, multi_flag, result_file_fold)

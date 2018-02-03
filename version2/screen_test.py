@@ -24,7 +24,7 @@ if __name__ == '__main__':
     polyp_manager = data_input.Polyp_Manager()
     polyp_manager.read_polyps_from_disk(record_dir, 'test')
 
-    #main(train_dir, record_dir, 'test', inference, Parameters)
+    main(train_dir, record_dir, 'test', inference, Parameters)
 
     Test(polyp_manager, 0.9999)
     Test(polyp_manager, 0.999)

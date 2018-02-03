@@ -180,7 +180,8 @@ def segmentation(volume, seed_threshold, grow_threshold, result_file_fold=''):
 
 def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
-
+def _int64_feature(value):
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
 def confirm(volume, result_file_fold=''):
     polyp_num = np.max(volume.polyp_mask)
@@ -270,16 +271,24 @@ def produce_tf_samples_unit(volume, result_file_fold=''):
             os.path.join(segment_fold, files[i+0])))
         cropped_score_data = SimpleITK.GetArrayFromImage(SimpleITK.ReadImage(
             os.path.join(segment_fold, files[i+2])))
+        cropped_score_data = cropped_score_data!=0
         name_str = files[i][:files[i].rfind('#')]
         temp = name_str.split('#')
         center = np.array(temp).astype(np.int)
         left = center.copy() - int(SCREEN_CROP_LEN/2)
         cropped_polyp_mask = crop(volume.polyp_mask, SCREEN_CROP_LEN, left, 0)
 
-        fopen = open(os.path.join(segment_fold, name_str+"#result"), 'w')
         overlap = cropped_polyp_mask * (cropped_score_data!=0)
+        if np.sum(overlap)>0:
+            label_value = int(1)
+        else:
+            label_value = int(0)
+        URL = volume.base_dir + "|" + name_str
         example = tf.train.Example(features=tf.train.Features(feature={
             'volume':_bytes_feature(cropped_ct_data.astype(np.float32).tostring()),  # be float32!
+            'score_map': _bytes_feature(cropped_score_data.astype(np.uint8).tostring()),
+            'label': _int64_feature(label_value),
+            'URL': _bytes_feature(URL),
             'mask':_bytes_feature(cropped_polyp_mask.astype(np.uint8).tostring()), }))
         if np.sum(overlap)>0:
             writer1.write(example.SerializeToString())
@@ -287,7 +296,6 @@ def produce_tf_samples_unit(volume, result_file_fold=''):
         else:
             writer2.write(example.SerializeToString())
             num_false += 1
-        fopen.close()
 
     writer1.close()
     writer2.close()
