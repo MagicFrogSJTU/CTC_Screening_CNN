@@ -10,12 +10,11 @@ import numpy as np
 import tensorflow as tf
 import ctc_convnet
 import os
-from dataDirectory import DataDirectory
 tf.logging.set_verbosity(tf.logging.INFO)
 
 batch_size=1
 
-def eval_once(saver, checkpoint_dir, number_of_samples, summary_writer, summary_op, size_of_true_positive1, size_of_false_positive1,
+def eval_once(saver, checkpoint_dir, summary_writer, summary_op, size_of_true_positive1, size_of_false_positive1,
                       size_of_true_positive2, size_of_false_positive2, size_of_true_positive3, size_of_false_positive3,
                       size_of_positive, dice_loss):
     """Run Eval once.
@@ -37,6 +36,17 @@ def eval_once(saver, checkpoint_dir, number_of_samples, summary_writer, summary_
             print('No checkpoint file found')
             return
 
+        size_true_total1 = 0
+        size_false_total1 = 0
+        size_true_total2 = 0
+        size_false_total2 = 0
+        size_true_total3 = 0
+        size_false_total3 = 0
+        step = 0
+        AtLeastOneDot1 = 0.0
+        AtLeastOneDot2 = 0.0
+        AtLeastOneDot3 = 0.0
+        dice_loss_total = 0.0
         # Start the queue runners.
         coord = tf.train.Coordinator()
         try:
@@ -44,21 +54,7 @@ def eval_once(saver, checkpoint_dir, number_of_samples, summary_writer, summary_
             for qr in tf.get_collection(tf.GraphKeys.QUEUE_RUNNERS):
                 threads.extend(qr.create_threads(sess, coord=coord, daemon=True,
                                                  start=True))
-
-            size_true_total1 = 0
-            size_false_total1 = 0
-            size_true_total2 = 0
-            size_false_total2 = 0
-            size_true_total3 = 0
-            size_false_total3 = 0
-            step = 0
-            AtLeastOneDot1 = 0.0
-            AtLeastOneDot2 = 0.0
-            AtLeastOneDot3 = 0.0
-            dice_loss_total = 0.0
-
-
-            while step < number_of_samples and not coord.should_stop():
+            while not coord.should_stop():
                 [size_true1, size_false1, size_true2, size_false2,
                  size_true3, size_false3, size, dice_loss_computed] = sess.run([size_of_true_positive1, size_of_false_positive1,
                       size_of_true_positive2, size_of_false_positive2, size_of_true_positive3, size_of_false_positive3,
@@ -79,48 +75,41 @@ def eval_once(saver, checkpoint_dir, number_of_samples, summary_writer, summary_
                 if size_true3>0:
                     AtLeastOneDot3+=1.0
 
-            # Compute precision @ 1.
-            ratio_true_aver1 = size_true_total1 / step
-            ratio_false_aver1 = size_false_total1 / step
-            ratio_atleastonedot1 = AtLeastOneDot1 / step
-            ratio_true_aver2 = size_true_total2 / step
-            ratio_false_aver2 = size_false_total2 / step
-            ratio_atleastonedot2 = AtLeastOneDot2 / step
-            ratio_true_aver3 = size_true_total3 / step
-            ratio_false_aver3 = size_false_total3 / step
-            ratio_atleastonedot3 = AtLeastOneDot3 / step
-            dice_loss_aver = dice_loss_total / step
-            print(global_step)
-            print("the ratios of 0.1 is %.3f, %.3f, %.3f" %(ratio_true_aver1, ratio_false_aver1, ratio_atleastonedot1))
-            print("the ratios of 0.5 is %.3f, %.3f, %.3f" %(ratio_true_aver2, ratio_false_aver2, ratio_atleastonedot2))
-            print("the ratios of 0.9 is %.3f, %.3f, %.3f" %(ratio_true_aver3, ratio_false_aver3, ratio_atleastonedot3))
-            print(dice_loss_aver)
-            summary = tf.Summary()
-            summary.ParseFromString(sess.run(summary_op))
-            summary_writer.add_summary(summary, global_step)
         except Exception as e:  # pylint: disable=broad-except
             coord.request_stop(e)
+        # Compute precision @ 1.
+        ratio_true_aver1 = size_true_total1 / step
+        ratio_false_aver1 = size_false_total1 / step
+        ratio_atleastonedot1 = AtLeastOneDot1 / step
+        ratio_true_aver2 = size_true_total2 / step
+        ratio_false_aver2 = size_false_total2 / step
+        ratio_atleastonedot2 = AtLeastOneDot2 / step
+        ratio_true_aver3 = size_true_total3 / step
+        ratio_false_aver3 = size_false_total3 / step
+        ratio_atleastonedot3 = AtLeastOneDot3 / step
+        dice_loss_aver = dice_loss_total / step
+        print(global_step)
+        print("the ratios of 0.1 is %.3f, %.3f, %.3f" %(ratio_true_aver1, ratio_false_aver1, ratio_atleastonedot1))
+        print("the ratios of 0.5 is %.3f, %.3f, %.3f" %(ratio_true_aver2, ratio_false_aver2, ratio_atleastonedot2))
+        print("the ratios of 0.9 is %.3f, %.3f, %.3f" %(ratio_true_aver3, ratio_false_aver3, ratio_atleastonedot3))
+        print(dice_loss_aver)
+        summary = tf.Summary()
+        summary.ParseFromString(sess.run(summary_op))
+        summary_writer.add_summary(summary, global_step)
 
         coord.request_stop()
         coord.join(threads, stop_grace_period_secs=10)
 
 
-def evaluate(model_dir, dataDir, inference, Parameters):
+def evaluate(inference, cfg, db):
     """Eval for a number of steps."""
-    number_of_samples = 0
-    record_dir = dataDir.get_current_test_record_dir()
-    print("current record directory", record_dir)
-    with open(record_dir, 'r') as f:
-        number_of_samples = len(f.readlines())
-    print("number of samples:", number_of_samples)
+    eval_dir = cfg.get_current_eval_dir()
+    print("current eval directory", eval_dir)
 
-    dataDirectory = DataDirectory()
-    eval_dir = os.path.join(model_dir, dataDirectory.eval_fold)
-    checkpoint_dir = os.path.join(model_dir, dataDirectory.checkpoint_fold)
+    checkpoint_dir = cfg.get_current_checkpoint_dir()
     with tf.Graph().as_default()as g:
         with tf.device('/cpu:0'):
-            volumes, labels = ctc_convnet.inputs(False, dataDir, Parameters)
-
+            volumes, labels = ctc_convnet.inputs('validation', cfg, db)
 
         # Build a Graph that computes the logits predictions from the
         # inference dice_typeB_0.01_2res_2slices_2.
@@ -159,19 +148,19 @@ def evaluate(model_dir, dataDir, inference, Parameters):
         size_of_false_positive3 = tf.subtract(size_of_predict3, size_of_true_positive3)
 
 
-        variable_averages = tf.train.ExponentialMovingAverage(Parameters.MOVING_AVERAGE)
+        variable_averages = tf.train.ExponentialMovingAverage(cfg.MOVING_AVERAGE)
         saver = tf.train.Saver(variable_averages.variables_to_restore())
         # Build the summary operation based on the TF collection of Summaries.
         summary_op = tf.summary.merge_all()
         summary_writer = tf.summary.FileWriter(eval_dir, g)
 
         while True:
-            eval_once(saver, checkpoint_dir, number_of_samples, summary_writer, summary_op, size_of_true_positive1, size_of_false_positive1,
+            eval_once(saver, checkpoint_dir, summary_writer, summary_op, size_of_true_positive1, size_of_false_positive1,
                       size_of_true_positive2, size_of_false_positive2, size_of_true_positive3, size_of_false_positive3,
                       size_of_positive, dice_loss)
-            if Parameters.run_once:
+            if cfg.RUN_ONCE:
                 break
-            time.sleep(Parameters.eval_interval_secs)
+            time.sleep(cfg.EVAL_INTERVAL_SECS)
 
 
 

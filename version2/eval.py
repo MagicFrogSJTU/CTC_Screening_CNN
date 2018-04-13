@@ -5,35 +5,41 @@ from __future__ import division
 from __future__ import print_function
 import sys
 import os
-#sys.path.append(os.getcwd())
 sys.path.append(os.path.join(os.getcwd(),".."))
 import tensorflow as tf
-from dataDirectory import DataDirectory
 from ctc_screen_eval import evaluate
 from network import inference
-from train import Parameters
 tf.logging.set_verbosity(tf.logging.INFO)
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-Parameters.eval_interval_secs=180
-Parameters.run_once=False
+from train import ModelConfig
+from dataBase import DataBase
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--fold", type=int, help='which cross validation fold')
+parser.add_argument("--fold", type=int, default=None, help='which cross validation fold')
 FLAGS = parser.parse_args()
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+class EvalModelConfig(ModelConfig):
+    EVAL_INTERVAL_SECS = 180
+    RUN_ONCE = False
+
+    def __init__(self, whichfold=None):
+        assert whichfold is not None
+        self.cross_index = whichfold
+        print("Nested Cross Validation: Under fold:", self.cross_index)
+        #TODO
+        # super(EvalModelConfig, self).__init__(whichfold)
+
 def main(argv=None):
-    dataDirectory = DataDirectory()
-    dataDirectory.cross_index = FLAGS.fold
-    model_dir = dataDirectory.get_current_model_dir()
-    eval_dir = os.path.join(dataDirectory.get_current_model_dir(),
-                             dataDirectory.eval_fold)
+    db = DataBase(whichfold=FLAGS.fold)
+    cfg = EvalModelConfig(FLAGS.fold)
+
+    eval_dir = cfg.get_current_eval_dir()
     if tf.gfile.Exists(eval_dir):
         tf.gfile.DeleteRecursively(eval_dir)
     tf.gfile.MakeDirs(eval_dir)
-    evaluate(model_dir, dataDirectory, inference, Parameters)
+    evaluate(inference, cfg, db)
 
 
 if __name__ == '__main__':

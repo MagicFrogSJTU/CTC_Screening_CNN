@@ -1,7 +1,9 @@
 # Created by Chen Yizhi. 20171107.
 # func:
 #      transform3D()
-#
+
+# TODO: GPU Version of sampling. Not Implemented
+raise NotImplementedError
 
 import numpy as np
 import SimpleITK as sitk

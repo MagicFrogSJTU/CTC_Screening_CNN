@@ -35,9 +35,7 @@ def deconv_layer(input, name, channels, shape, strides=(1,1,1), ifBN=False, ifBN
         return conv
 
 def inference(volumes, iftrain):
-    # vnet
-    conv = volumes / 1000
-
+    conv = volumes
     # 1
     with tf.name_scope('down1'):
         conv1 = layer(conv, 'conv1.0', 32, [3, 3, 3], ifBN=True, ifBNTrain=iftrain, ifBNScale=True, ifRelu=True)

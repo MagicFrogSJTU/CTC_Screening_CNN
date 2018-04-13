@@ -21,7 +21,7 @@ def dialate(labels):
 
 
 
-def train(total_loss, global_step, Parameters):
+def gradient_backward(total_loss, global_step, cfg):
     """Train CIFAR-10 dice_typeB_0.01_2res_2slices_2.
 
     Create an optimizer and apply to all trainable variables. Add moving
@@ -35,14 +35,14 @@ def train(total_loss, global_step, Parameters):
         train_op: op for training.
     """
     #update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-    lr = tf.train.exponential_decay(Parameters.INITIAL_LEARNING_RATE, global_step, 10000, 0.9, name='exponential_decay')
+    lr = tf.train.exponential_decay(cfg.INITIAL_LEARNING_RATE, global_step, 10000, 0.9, name='exponential_decay')
     tf.summary.scalar('learning rate', lr)
 
     opt = tf.train.AdamOptimizer(lr)
     grads = opt.compute_gradients(total_loss)
     apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
 
-    variable_averages = tf.train.ExponentialMovingAverage(Parameters.MOVING_AVERAGE, global_step)
+    variable_averages = tf.train.ExponentialMovingAverage(cfg.MOVING_AVERAGE, global_step)
     variable_averages_op = variable_averages.apply(tf.trainable_variables())
 
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -51,7 +51,7 @@ def train(total_loss, global_step, Parameters):
     return train_op
 
 
-def inputs(eval_data, dataDir, Parameters):
+def inputs(mode, cfg, db):
     """Construct input for CIFAR evaluation using the Reader ops.
 
     Args:
@@ -64,19 +64,18 @@ def inputs(eval_data, dataDir, Parameters):
   Raises:
     ValueError: If no data_dir
     """
-    if eval_data:
-        if Parameters.ROTATE_GPU:
+    if mode == 'train':
+        if cfg.ROTATE_GPU:
             print("GPU ROTATION")
-            images, labels = ctc_input.inputs(eval_data, Parameters.BATCH_SIZE, dataDir,
-                                          Parameters)
+            images, labels = ctc_input.inputs(mode, cfg.BATCH_SIZE, cfg, db)
         else:
-            raise EOFError
+            raise NotImplementedError
             #TODO
             #print("CPU ROTATION")
-            #images, labels = ctc_input_cpu.inputs(eval_data, Parameters.BATCH_SIZE, record_file_dir, database_dir,
-            #                              Parameters)
+            #images, labels = ctc_input_cpu.inputs(eval_data, cfg.BATCH_SIZE, record_file_dir, database_dir,
+            #                              cfg)
             
     else:
-        images, labels = ctc_input.inputs(eval_data, 1, dataDir, Parameters)
+        images, labels = ctc_input.inputs(mode, 1, cfg, db)
 
     return images, labels
