@@ -1,19 +1,20 @@
 # Created by Chen Yizhi, 20171201.
-import os
 
 # Directory of the project.
 BASE_DIR = '/mnt/disk6/Yizhi/CTC_SCREEN'
-
-# Each line of volume_info.txt contains a relative url of a fold of a CT volume data.
-CT_VOLUME_DATA_RECORD_FILE = "/mnt/disk6/Yizhi/volume_info.txt"
-# The directory where all CT volume data exist.
+# The directory where all CT volume data are stored.
 CT_VOLUME_BASE_DIR = "/mnt/disk6/Yizhi/SegmentedColonData"
-# The directory where information files would be stored
+# Each line of volume_info.txt contains a relative url of a fold of a CT volume data to the CT_VOLUME_BASE_DIR
+# A typical line would be:
+# TestFile/WRAMC VC-100M/1.3.6.1.4.1.9328.50.99.75748/1.3.6.1.4.1.9328.50.99.75749
+CT_VOLUME_DATA_RECORD_FILE = "/mnt/disk6/Yizhi/volume_info.txt"
+# The directory where information files would be stored. If you don't know what it is, just put it under the code fold
+# of the BASE_DIR
 INFORMATION_FILE_DIR = '/mnt/disk6/Yizhi/CTC_SCREEN/code'
 
 # The size for network input.
 SCREEN_VOLUME_SIZE = 48
-# The size of volume cut from original CT data.
+# The size of volume cropped from original CT data.
 CUT_RAW_VOLUME_SIZE = 160
 
 ################################################################ str in "" is IN REGULAR EXPRESSION!
@@ -24,13 +25,7 @@ CUT_RAW_VOLUME_SIZE = 160
 #                               /"\d*", folds for different CT volumes
 #                                       /"\d*", folds for polyps
 #                                               /image data for a polyp
-#                   /cross_validation
-#                               /"\d", folds for different fold of validation.
-#                                       /"testSet.txt"
-#                                       /"trainSet.txt"
-#                                       /"testVolumeRecord.txt"
-#                                       /"trainVolumeRecord.txt"
-#           /code
+#           /code(The root directory that you git-clone!)
 #                   /".*\.py"
 #                   /"version\d", folds for different network versions of code.
 #                               /".*\.py"
@@ -44,11 +39,12 @@ CUT_RAW_VOLUME_SIZE = 160
 #           /different patient
 #                   /".*"
 #                           /different volumes of the patient
-#                                   /CT volume data
-#                                   /polyp mask
-#                                   /colon mask
-#                                   /"voxel spacing.txt"
+#                                   /CT_data.nii.gz
+#                                   /polyp_mask.nii.gz
+#                                   /colon mask.nii.gz
 
+
+import os
 
 class Configuration:
     cross_validation_url = os.path.join(BASE_DIR, 'input', 'cross_validation')

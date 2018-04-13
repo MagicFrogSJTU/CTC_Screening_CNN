@@ -38,8 +38,6 @@ def screen_cnn(inference, db, cfg):
                 return
 
             df = db.df.query('fold=="test"')
-            # TODO: Combine those repeated.
-
             multi_i = -1
             for volume_uid, n_group in df.groupby('volume uid'):
                 row = n_group.iloc[0]
@@ -51,7 +49,8 @@ def screen_cnn(inference, db, cfg):
 
                 volume_data = Volume_Data()
                 volume_data.Set_Directory(row['volume path'])
-                volume_data.load_volume_data()
+                print(volume_data.base_dir)
+                assert volume_data.load_volume_data() == 1
                 volume_data.load_colon_dilation()
                 rawCTdata = volume_data.CT_data
                 colon_mask = volume_data.dilated_colon_mask

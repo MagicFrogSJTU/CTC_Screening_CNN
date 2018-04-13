@@ -1,4 +1,5 @@
-''' Created by Yizhi Chen. 20170930'''
+''' Created by Yizhi Chen. 20170930
+'''
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -12,13 +13,14 @@ import Configuration
 import shutil
 import pandas as pd
 from Configuration import INFORMATION_FILE_DIR
-import SimpleITK as sitk
 
 
 
 
 
 class DataBase:
+    '''Class that handles the information of polyps and volumes
+    '''
     def __init__(self, whichfold=None):
         self.df = None
         if whichfold != None:
@@ -26,7 +28,12 @@ class DataBase:
             self.df['fold'] = self.df['fold%s'%whichfold].map(lambda x:x)
 
     def init_first_time(self):
-        '''Set up all kinds of information collecting and database building for CTC Screening'''
+        '''Set up all kinds of information collecting and database building for CTC Screening
+        '''
+        # Backup the old file.
+        if os.path.exists(os.path.join(INFORMATION_FILE_DIR, 'database_info.csv')):
+            shutil.move(os.path.join(INFORMATION_FILE_DIR, 'database_info.csv'),
+                        os.path.join(INFORMATION_FILE_DIR, 'database_info.csv.old'))
         self.set_up_from_volume_record()
         self.build_polyp_info()
         self.build_cross_validation_split_randomly()
@@ -96,13 +103,12 @@ class DataBase:
             print('\r',index, end='')
             volume_data = dataStructure.Volume_Data()
             volume_data.Set_Directory(row['volume path'])
-            volume_data.load_spacing()
-            row['spacing'] = volume_data.spacing
             if not volume_data.load_polyp_mask():
                 new_row = row.copy()
                 new_row['has polyp'] = False
                 new_rows.append(new_row)
             else:
+                row['spacing'] = volume_data.spacing
                 label_max = np.max(volume_data.polyp_mask)
                 assert label_max >= 1
                 for label in range(1, label_max+1):
@@ -218,27 +224,5 @@ class DataBase:
 
 
 if __name__ == '__main__':
-    if 0:
-        database = DataBase()
-        database.init_first_time()
-    if 0:
-        database = DataBase(0)
-        print("!!")
-    if 1:
-        db = DataBase(0)
-        for volume_path, n_group in db.df.groupby('volume path'):
-            vdata = dataStructure.Volume_Data()
-            vdata.Set_Directory(volume_path)
-            vdata.load_volume_data()
-            vdata.load_polyp_mask()
-            vdata.load_colon_dilation()
-            vdata.load_colon_mask()
-
-            pairs = {'CT_data.nii.gz': vdata.CT_data,
-                     'polyp_mask.nii.gz': vdata.polyp_mask,
-                     'colon_mask.nii.gz': vdata.colon_mask,
-                }
-            for name in pairs:
-                image = sitk.GetImageFromArray(pairs[name])
-                sitk.WriteImage(image, os.path.join(volume_path, name))
-            print(volume_path)
+    db = DataBase()
+    db.init_first_time()

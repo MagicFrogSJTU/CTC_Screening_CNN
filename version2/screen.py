@@ -1,3 +1,6 @@
+'''Created by Chen Yizhi in 2017.
+'''
+
 import sys
 import os
 sys.path.append(os.getcwd()+"/..")

@@ -1,14 +1,15 @@
+'''Created by Chen yizhi. 2017.??.??
+'''
 import numpy as np
-import dicom
 import tensorflow as tf
 import os
 import SimpleITK
-import time
 from scipy.ndimage import binary_dilation
 from scipy.ndimage import generate_binary_structure
 
 class Polyp_data:
-    '''data object for polyp'''
+    '''data object for polyp.
+    '''
     raw_CT_name = "CT.nii.gz"
     raw_mask_name = "mask.nii.gz"
     colon_mask_name = "colon_mask.nii.gz"
@@ -154,9 +155,8 @@ class Polyp_data:
 
 class Volume_Data:
     '''Structure containing all data for a CT Volume.
-        Assume all data of a volume are in the same fold, as self.base_dir
-        Here My Data is in all kinds of strange formats, Thus
-        you should implement your own LOAD functions.'''
+        Make sure that all data of a volume are in the same fold, as self.base_dir
+        Here My Data is in nifit, so maybe you want to implement your own LOAD functions.'''
     #TODO: Make it a base class. I\O functions should be implemented in another class.
     def __init__(self):
         self.base_dir = 0
@@ -191,42 +191,32 @@ class Volume_Data:
 
 
     def load_volume_data(self):
-        '''Load CT volume data.
-        '''
-        self.volume_data_dir = 0
-        names=['oriInterpolatedCTData.raw', 'InterpolatedCTData.raw']
-        for name in names:
-            if os.path.exists(os.path.join(self.base_dir, name)):
-                self.volume_data_dir = os.path.join(self.base_dir, name)
-                break
-        assert self.volume_data_dir != 0
-
-        ds = dicom.read_file(self.volume_data_dir)
-        data = ds.pixel_array
+        name = "CT_data.nii.gz"
+        if not os.path.exists(os.path.join(self.base_dir, name)):
+            return 0
+        image = SimpleITK.ReadImage(os.path.join(self.base_dir, name))
+        data = SimpleITK.GetArrayFromImage(image)
         self.CT_data = (data<-999)*-999 + (data>=-999)*data
-        self.CT_data = self.CT_data.astype(np.int16)
-        self.shape = ds.pixel_array.shape
+        self.spacing = image.GetSpacing()
+        self.shape = self.CT_data.shape
+        return 1
+
+    def load_polyp_mask(self):
+        name = "polyp_mask.nii.gz"
+        if not os.path.exists(os.path.join(self.base_dir, name)):
+            return 0
+        image = SimpleITK.ReadImage(os.path.join(self.base_dir, name))
+        self.polyp_mask= SimpleITK.GetArrayFromImage(image)
+        return 1
 
     def load_colon_mask(self):
-        '''Load colon mask from base dir.
-        '''
-        name = 'colonMask.raw'
-        if self.base_dir == 0:
-            print("Base dir not provided!")
-            raise IOError
-        if self.shape == 0:
-            print("Shape not provided!")
-            raise ValueError
-        if os.path.exists(os.path.join(self.base_dir, name)):
-            self.colon_mask_dir = os.path.join(self.base_dir, name)
-        else:
-            print("Cannot find colon mask data.")
-            raise IOError
-        with open(self.colon_mask_dir, "rb") as f:
-            data = f.read()
-            data = np.fromstring(data, dtype=np.uint8)
-            data = (data!=0).astype(np.uint8)    # In case some map of polyp mask may have labels of 255.
-            self.colon_mask = np.reshape(data, self.shape)
+        name = "colon_mask.nii.gz"
+        if not os.path.exists(os.path.join(self.base_dir, name)):
+            return 0
+        image = SimpleITK.ReadImage(os.path.join(self.base_dir, name))
+        self.colon_mask = SimpleITK.GetArrayFromImage(image)
+        return 1
+
 
     def colon_mask_dilation(self, iterations=8):
         if self.colon_mask is 0:
@@ -234,13 +224,6 @@ class Volume_Data:
         structure = generate_binary_structure(3,2)
         self.dilated_colon_mask = binary_dilation(self.colon_mask, structure, iterations).astype(np.uint8)
 
-    def load_polyp_mask(self):
-        name = 'polyp_mask.nrrd'
-        if not os.path.exists(os.path.join(self.base_dir, name)):
-            return 0
-        image = SimpleITK.ReadImage(os.path.join(self.base_dir, name))
-        self.polyp_mask = SimpleITK.GetArrayFromImage(image)
-        return 1
 
     def load_score_map(self, fold=0):
         '''For nested cross validation, score maps are stored in the cross_1, cross_2, cross3... directory
@@ -262,11 +245,47 @@ class Volume_Data:
         self.dilated_colon_mask = SimpleITK.GetArrayFromImage(image)
         return 1
 
-    def load_spacing(self):
-        name = "voxelSpacing.txt"
-        with open(os.path.join(self.base_dir, name), 'r') as f:
-            nums = f.read().split()
-            floats = [0,0,0]
-            for i in range(3):
-                floats[i] = float(nums[i])
-            self.spacing = floats
+###################################################################
+## Deprecated
+'''
+    def load_colon_mask(self):
+        name = 'colonMask.raw'
+        if self.base_dir == 0:
+            print("Base dir not provided!")
+            raise IOError
+        if self.shape == 0:
+            print("Shape not provided!")
+            raise ValueError
+        if os.path.exists(os.path.join(self.base_dir, name)):
+            self.colon_mask_dir = os.path.join(self.base_dir, name)
+        else:
+            print("Cannot find colon mask data.")
+            raise IOError
+        with open(self.colon_mask_dir, "rb") as f:
+            data = f.read()
+            data = np.fromstring(data, dtype=np.uint8)
+            data = (data!=0).astype(np.uint8)    # In case some map of polyp mask may have labels of 255.
+            self.colon_mask = np.reshape(data, self.shape)
+    def load_volume_data(self):
+        self.volume_data_dir = 0
+        names=['oriInterpolatedCTData.raw', 'InterpolatedCTData.raw']
+        for name in names:
+            if os.path.exists(os.path.join(self.base_dir, name)):
+                self.volume_data_dir = os.path.join(self.base_dir, name)
+                break
+        assert self.volume_data_dir != 0
+
+        ds = dicom.read_file(self.volume_data_dir)
+        data = ds.pixel_array
+        self.CT_data = (data<-999)*-999 + (data>=-999)*data
+        self.CT_data = self.CT_data.astype(np.int16)
+        self.shape = ds.pixel_array.shape
+
+    def load_polyp_mask(self):
+        name = 'polyp_mask.nrrd'
+        if not os.path.exists(os.path.join(self.base_dir, name)):
+            return 0
+        image = SimpleITK.ReadImage(os.path.join(self.base_dir, name))
+        self.polyp_mask = SimpleITK.GetArrayFromImage(image)
+        return 1
+'''

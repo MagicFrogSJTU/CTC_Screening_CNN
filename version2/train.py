@@ -1,3 +1,5 @@
+'''Created by Chen Yizhi in 2017
+'''
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -17,7 +19,7 @@ parser.add_argument("--fold", type=int, help='which cross validation fold')
 FLAGS = parser.parse_args()
 
 class ModelConfig(Configuration):
-    MOVING_AVERAGE = 0.9995
+    MOVING_AVERAGE = 0.99
     INITIAL_LEARNING_RATE = 0.0001  #1e-4
     TYPEA = 0
     TYPEB = 0.001
@@ -29,7 +31,7 @@ class ModelConfig(Configuration):
     BATCH_SIZE = 16
     ROTATE_GPU = 1
 
-    MAX_POLYP_SIZE = 30  #Not
+    MAX_POLYP_SIZE = 30
     MIN_POLYP_SIZE = 5
 
     def __init__(self, whichfold=None):
@@ -40,6 +42,7 @@ class ModelConfig(Configuration):
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
 
+#TODO Need annotation.
 def getloss(logits, labels, scope, cfg):
     num_of_labels_vol = tf.reduce_sum(labels, [1, 2, 3, 4])
     true_batch = tf.cast(num_of_labels_vol > 0.5, tf.float32)
