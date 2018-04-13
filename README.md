@@ -6,8 +6,8 @@ You should refer to Configuration.py for a full understanding of the file struct
 
 # DATA INPUT
 In order to avoid the considerable time needed to load full-size CT volumes when training, we would first crop the
-volume first and organized them as a separate POLYP DATASET.
-1. Prepare you CT colonography data. You should have CT data, colon mask data, and polyp mask data.
+volume and then organized them as a separate POLYP DATASET.
+1. Prepare you CT colonography data as in the Configuration.py.
 2. List the directories of all the CT volumes in a text file.
 2. Modify several important directory variables in the Configuation.py.
 3. Run dataBase.py to construct information files and the polyp dataset.
@@ -19,7 +19,7 @@ volume first and organized them as a separate POLYP DATASET.
 1. "cd version2" and "python eval.py --fold=0" for a validation in every 120 seconds.
 2. "cd version2" and "python screen.py --fold=0" for a test to the full-size CT volumes of the test set.
 
-Please Star me if you like it!
+Star me if you like it!
 
 
 
