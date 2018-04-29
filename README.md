@@ -1,5 +1,5 @@
 Tensorflow implementation of "A 3D Convolutional Neural Network Framework for Polyp Candidates Detection
-with Limited Dataset in CT Colonography", Chen Yizhi, 2018, EMBC
+with Limited Dataset in CT Colonography", Chen Yizhi, 2018, EMBC. Copyright Reserved. Free for all kinds of reproduction and revisement for research purposes.
 
 # FILE STRUCTURE
 You should refer to Configuration.py for a full understanding of the file structure of the program and the database.
