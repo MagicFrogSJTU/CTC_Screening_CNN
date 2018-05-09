@@ -103,6 +103,7 @@ class DataBase:
             print('\r',index, end='')
             volume_data = dataStructure.Volume_Data()
             volume_data.Set_Directory(row['volume path'])
+            volume_data.load_volume_data()
             if not volume_data.load_polyp_mask():
                 new_row = row.copy()
                 new_row['has polyp'] = False
