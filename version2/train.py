@@ -55,13 +55,6 @@ def getloss(logits, labels, scope, cfg):
     with tf.name_scope("dice_loss_mean"):
         dice_loss_mean = tf.reduce_sum(dice_loss) / (num_of_true_examples+1e-6)
 
-
-    logits2_big = tf.reduce_sum(((logits-0.5)*tf.cast(logits>0.5, tf.float32))**2, axis=[1,2,3,4])
-    logits2_zero = logits2_big * tf.cast(num_of_labels_vol<0.5, tf.float32)
-    with tf.name_scope("zero_loss_mean"):
-        zero_loss_mean = tf.reduce_sum(logits2_zero) * cfg.TYPEB / (num_of_false_examples+1e-6)
-
-    tf.add_to_collection('losses', zero_loss_mean)
     tf.add_to_collection('losses', dice_loss_mean)
     losses = tf.get_collection('losses', scope)
     regular_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
