@@ -225,10 +225,11 @@ def sampling(mask, polyp_size, colon_mask, MAX_POLYP_SIZE, MIN_POLYP_SIZE, TRUE_
     '''
     # scaling ratio
     radius = (polyp_size*3.0/4/np.pi)**(1/3.0)
-    max_ = np.max([MAX_POLYP_SIZE*0.6/radius, 1.2])
-    max_ = np.min([2, max_])
-    min_ = np.min([radius/(MIN_POLYP_SIZE*2), 0.8])
-    min_ = np.max([min_, 0.6])
+
+    max_ = np.min([MAX_POLYP_SIZE*0.75/radius, 2.0])
+    max_ = np.max([max_, 1.2])
+    min_ = np.min([MIN_POLYP_SIZE*1.2/radius, 0.8])
+    min_ = np.max([min_, 0.3333])
     scaling_ratio = np.random.random()*(max_-min_)+min_
 
 
