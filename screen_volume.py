@@ -140,8 +140,7 @@ def analysis_of_screen(db, cfg, seed_threshold, grow_threshold=0.9, ):
         volume = Volume_Data()
         test_volume_path = os.path.join(cfg.screening_output_url,
                             row['patient uid'],
-                            volume_uid,
-                            cfg.result_file_fold,)
+                            volume_uid)
         volume.Set_Directory(test_volume_path)
         if not volume.load_polyp_mask():
             raise IOError
